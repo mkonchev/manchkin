@@ -1,0 +1,12 @@
+# Деплой на Render: https://dashboard.render.com → New → Blueprint → укажи этот репозиторий
+services:
+  - type: web
+    name: munchkin-company
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"

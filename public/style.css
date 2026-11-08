@@ -1,0 +1,286 @@
+/* ============================================================================
+   Свой Манчкин Онлайн — стили
+   ============================================================================ */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #131120;
+  --panel: #1d1a30;
+  --panel2: #262239;
+  --line: #3a3556;
+  --text: #e8e4f5;
+  --muted: #9a93b8;
+  --gold: #ffc857;
+  --red: #ff5d5d;
+  --green: #7dde8b;
+  --accent: #8f6cff;
+}
+
+body {
+  background: radial-gradient(1200px 600px at 50% -10%, #241f3f 0%, var(--bg) 60%);
+  color: var(--text);
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  height: 100vh;
+  overflow: hidden;
+}
+.hidden { display: none !important; }
+.screen { height: 100vh; display: flex; flex-direction: column; }
+
+button { font-family: inherit; }
+.btn {
+  background: var(--panel2);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 15px;
+  cursor: pointer;
+  transition: 0.15s;
+}
+.btn:hover { border-color: var(--accent); transform: translateY(-1px); }
+.btn.primary { background: linear-gradient(135deg, #7b5ce0, #5d3fd1); border-color: #8f6cff; font-weight: 600; }
+.btn.danger { background: #58222c; border-color: #7d3040; }
+.btn.small { padding: 6px 10px; font-size: 13px; border-radius: 8px; }
+.btn.ghost { background: transparent; }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+input {
+  background: var(--panel2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--text);
+  padding: 10px 14px;
+  font-size: 15px;
+  outline: none;
+}
+input:focus { border-color: var(--accent); }
+
+/* ------------------------------------------------------------------ лобби */
+#lobby { align-items: center; justify-content: center; }
+.lobby-box {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 42px 46px;
+  width: min(420px, 92vw);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: 0 30px 80px rgba(0,0,0,.5);
+  text-align: center;
+}
+.lobby-box h1 { font-size: 34px; letter-spacing: 1px; }
+.subtitle { color: var(--muted); margin-bottom: 10px; }
+.lobby-row { display: flex; gap: 10px; }
+.lobby-row input { flex: 1; }
+#nameInput { text-align: center; font-weight: 600; }
+.error { color: var(--red); font-size: 14px; min-height: 18px; }
+
+/* ------------------------------------------------------------------ шапка */
+header {
+  display: flex; align-items: center; gap: 14px;
+  padding: 8px 14px;
+  background: rgba(20,17,32,.7);
+  border-bottom: 1px solid var(--line);
+}
+.room-info { display: flex; align-items: center; gap: 8px; }
+.code {
+  font-family: 'Consolas', monospace;
+  font-size: 18px; font-weight: 700; letter-spacing: 3px;
+  color: var(--gold);
+  background: var(--panel2);
+  padding: 4px 10px; border-radius: 8px; cursor: pointer;
+}
+#phaseBar { flex: 1; text-align: center; font-size: 16px; font-weight: 600; color: var(--gold); }
+
+/* ------------------------------------------------------------------ layout */
+main {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 230px 1fr 250px;
+  gap: 10px;
+  padding: 10px;
+  min-height: 0;
+}
+aside, #table {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow-y: auto;
+}
+
+/* ------------------------------------------------------------------ игроки */
+#playersPanel { padding: 8px; display: flex; flex-direction: column; gap: 8px; }
+.player-card {
+  background: var(--panel2);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 8px 10px;
+  cursor: pointer;
+  transition: 0.15s;
+}
+.player-card:hover { border-color: var(--accent); }
+.player-card.me { border-color: #4b3f7d; }
+.player-card.turn { border-color: var(--gold); box-shadow: 0 0 12px rgba(255,200,87,.25); }
+.player-card .p-name { font-weight: 700; display: flex; justify-content: space-between; align-items: center; }
+.player-card .p-name .hand-ico { font-size: 13px; color: var(--muted); }
+.player-card .p-stats { display: flex; gap: 10px; margin-top: 4px; font-size: 13px; color: var(--muted); flex-wrap: wrap; }
+.player-card .p-equip { margin-top: 4px; font-size: 12px; color: #c7bf8f; display: flex; flex-direction: column; gap: 1px; }
+.badge {
+  display: inline-block;
+  background: #3a2d66; color: #cdb9ff;
+  border-radius: 6px; padding: 0 6px; font-size: 11px;
+}
+.offline { opacity: .5; }
+
+/* ------------------------------------------------------------------ стол */
+#table { display: flex; flex-direction: column; padding: 12px; gap: 10px; }
+#decksRow { display: flex; gap: 10px; align-items: stretch; }
+.deck {
+  background: var(--panel2); border: 1px solid var(--line); border-radius: 12px;
+  padding: 8px 14px; display: flex; flex-direction: column; align-items: center; min-width: 90px;
+  font-size: 12px; color: var(--muted);
+}
+.deck b { font-size: 18px; color: var(--text); }
+.deck span { font-size: 22px; }
+.discard {
+  flex: 1; border: 1px dashed var(--line); border-radius: 12px;
+  padding: 6px 12px; font-size: 12px; color: var(--muted);
+  display: flex; flex-direction: column; justify-content: center; gap: 2px;
+}
+.discard b { color: var(--text); font-weight: 500; }
+
+/* бой */
+#combatArea { flex: 1; display: flex; flex-direction: column; gap: 10px; min-height: 0; overflow-y: auto; }
+.vs-wrap { display: flex; gap: 10px; align-items: stretch; flex: 0 0 auto; }
+.side {
+  flex: 1; border-radius: 14px; padding: 10px; text-align: center;
+  display: flex; flex-direction: column; gap: 6px; align-items: center;
+}
+.side-monster { background: linear-gradient(180deg, #2c1420, #1d0e16); border: 1px solid #5c2338; }
+.side-players { background: linear-gradient(180deg, #16203a, #0e1526); border: 1px solid #2c3e66; }
+.side-label { font-size: 11px; letter-spacing: 2px; color: var(--muted); }
+.side-power { font-size: 44px; font-weight: 800; line-height: 1; }
+.side-monster .side-power { color: var(--red); }
+.side-players .side-power { color: var(--green); }
+.vs { align-self: center; font-weight: 900; font-size: 20px; color: var(--muted); }
+#monsterCards, #sideCards { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+#monsterCards .card, #sideCards .card { width: 130px; font-size: 11px; }
+#combatActions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+
+#turnActions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+#turnActions .big { font-size: 18px; padding: 14px 26px; }
+
+/* моя панель */
+#myPanel {
+  background: var(--panel2); border: 1px solid var(--line); border-radius: 14px;
+  padding: 10px 12px; display: flex; gap: 14px; align-items: center; flex-wrap: wrap;
+}
+.my-stat { font-size: 14px; color: var(--muted); }
+.my-stat b { color: var(--text); font-size: 17px; }
+.my-slots { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; }
+.my-slots .card { width: 108px; font-size: 10px; }
+.slot-empty {
+  width: 108px; border: 1px dashed var(--line); border-radius: 8px;
+  padding: 4px 6px; font-size: 11px; color: var(--muted); text-align: center;
+}
+
+/* ------------------------------------------------------------------ рука */
+#handWrap {
+  border-top: 1px solid var(--line);
+  background: rgba(20,17,32,.85);
+  padding: 8px 12px 12px;
+}
+#handTitle { font-size: 13px; color: var(--muted); margin-bottom: 6px; min-height: 16px; }
+#hand { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; min-height: 120px; }
+#hand .card { flex: 0 0 128px; height: 158px; }
+
+/* ------------------------------------------------------------------ карты */
+.card {
+  background: linear-gradient(180deg, var(--panel2), #1a1728);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 6px 7px;
+  font-size: 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  cursor: pointer;
+  position: relative;
+  transition: 0.12s;
+  overflow: hidden;
+  user-select: none;
+}
+.card:hover { transform: translateY(-3px); border-color: var(--accent); }
+.card .c-ico { font-size: 18px; }
+.card .c-name { font-weight: 700; font-size: 11px; line-height: 1.15; }
+.card .c-text { color: var(--muted); font-size: 10px; line-height: 1.2; overflow: hidden; }
+.card .c-bonus {
+  position: absolute; top: 5px; right: 5px;
+  background: rgba(0,0,0,.4); border-radius: 6px;
+  font-size: 12px; font-weight: 800; padding: 1px 6px;
+}
+.card.t-monster { background: linear-gradient(180deg, #33121e, #210b13); border-color: #6b2a3e; }
+.card.t-monster .c-ico { color: var(--red); }
+.card.t-curse { background: linear-gradient(180deg, #17301c, #0e1d12); border-color: #2f6b3a; }
+.card.t-klass { background: linear-gradient(180deg, #14203a, #0d1526); border-color: #2c4a7d; }
+.card.t-item { background: linear-gradient(180deg, #33290f, #201a09); border-color: #7d6426; }
+.card.t-oneShot { background: linear-gradient(180deg, #2a1238, #1a0b24); border-color: #6b2a8d; }
+.card.t-levelUp { background: linear-gradient(180deg, #3a2a10, #241a09); border-color: #8d6b2a; }
+.card.t-enhancer { background: linear-gradient(180deg, #40180c, #270e07); border-color: #8d3a20; }
+.card.selected { outline: 3px solid var(--gold); }
+
+/* ------------------------------------------------------------------ лог */
+#logPanel { display: flex; flex-direction: column; padding: 8px; gap: 8px; }
+#logList { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 3px; font-size: 12px; }
+.log-line { padding: 4px 7px; border-radius: 7px; background: var(--panel2); color: #cfc9e6; }
+.log-line.chat { background: #241f3d; }
+.log-line.chat b { color: var(--accent); }
+.log-line.big { color: var(--gold); font-weight: 600; }
+#chatForm { display: flex; gap: 6px; }
+#chatInput { flex: 1; padding: 7px 10px; font-size: 13px; }
+
+/* ------------------------------------------------------------------ модалки */
+#modal, #winOverlay {
+  position: fixed; inset: 0;
+  background: rgba(8,6,14,.72);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 50;
+}
+#modalBox, #winBox {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 22px;
+  width: min(430px, 92vw);
+  max-height: 82vh;
+  overflow-y: auto;
+  box-shadow: 0 30px 80px rgba(0,0,0,.6);
+}
+#modalBox h3 { margin-bottom: 12px; text-align: center; }
+#modalBox .m-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+#modalBox .m-actions .btn { text-align: left; }
+.player-pick { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.player-pick .btn { display: flex; justify-content: space-between; }
+#winBox { text-align: center; }
+#winBox h2 { font-size: 30px; margin: 10px 0 20px; color: var(--gold); }
+
+/* тосты */
+#toasts { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); z-index: 99;
+  display: flex; flex-direction: column; gap: 6px; align-items: center; }
+.toast {
+  background: #4a2030; color: #ffd7d7; border: 1px solid #7d3040;
+  border-radius: 10px; padding: 9px 16px; font-size: 14px;
+  animation: fadein .2s;
+}
+.toast.ok { background: #1e3a28; border-color: #2f6b3a; color: #d7ffd7; }
+@keyframes fadein { from { opacity: 0; transform: translateY(8px); } }
+
+/* ------------------------------------------------------------------ адаптив */
+@media (max-width: 980px) {
+  main { grid-template-columns: 1fr; grid-template-rows: auto 1fr 170px; }
+  #playersPanel { flex-direction: row; overflow-x: auto; overflow-y: hidden; }
+  .player-card { min-width: 150px; }
+  #logPanel { display: none; }
+  body { overflow: auto; }
+}

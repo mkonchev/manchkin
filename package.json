@@ -1,0 +1,14 @@
+{
+  "name": "munchkin-online",
+  "version": "0.1.0",
+  "description": "Свой манчкин онлайн для компании друзей",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test/smoke.js",
+    "cards": "node tools/render-cards.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}

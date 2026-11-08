@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Свой Манчкин Онлайн</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+  <!-- ЭКРАН ЛОББИ -->
+  <div id="lobby" class="screen">
+    <div class="lobby-box">
+      <h1>⚔ Свой Манчкин</h1>
+      <p class="subtitle">онлайн-версия для компании друзей</p>
+      <input id="nameInput" maxlength="20" placeholder="Твоё имя" autocomplete="off">
+      <div class="lobby-row">
+        <button id="createBtn" class="btn primary">🎲 Создать комнату</button>
+      </div>
+      <div class="lobby-row">
+        <input id="codeInput" maxlength="4" placeholder="КОД" style="text-transform:uppercase">
+        <button id="joinBtn" class="btn">Войти</button>
+      </div>
+      <p id="lobbyError" class="error"></p>
+    </div>
+  </div>
+
+  <!-- ЭКРАН ИГРЫ -->
+  <div id="game" class="screen hidden">
+    <header>
+      <div class="room-info">
+        <span class="code" id="roomCode" title="Нажми, чтобы скопировать ссылку">····</span>
+        <button id="copyBtn" class="btn small">🔗 Ссылка</button>
+      </div>
+      <div id="phaseBar"></div>
+      <button id="leaveBtn" class="btn small ghost">Выйти</button>
+    </header>
+
+    <main>
+      <!-- Игроки -->
+      <aside id="playersPanel"></aside>
+
+      <!-- Стол -->
+      <section id="table">
+        <div id="decksRow">
+          <div class="deck" id="deckDoor">🚪<span>Двери</span><b id="deckDoorN">0</b></div>
+          <div class="deck" id="deckTreasure">💎<span>Сокровища</span><b id="deckTreasureN">0</b></div>
+          <div class="discard" id="discardInfo"></div>
+        </div>
+
+        <div id="combatArea" class="hidden">
+          <div class="vs-wrap">
+            <div class="side side-monster">
+              <div class="side-label">МОНСТР</div>
+              <div class="side-power" id="monsterPower">0</div>
+              <div id="monsterCards"></div>
+            </div>
+            <div class="vs">VS</div>
+            <div class="side side-players">
+              <div class="side-label">ОТРЯД</div>
+              <div class="side-power" id="sidePower">0</div>
+              <div id="sideCards"></div>
+            </div>
+          </div>
+          <div id="combatActions"></div>
+        </div>
+
+        <div id="turnActions"></div>
+
+        <div id="myPanel"></div>
+      </section>
+
+      <!-- Лог/чат -->
+      <aside id="logPanel">
+        <div id="logList"></div>
+        <form id="chatForm">
+          <input id="chatInput" placeholder="Написать в чат…" autocomplete="off" maxlength="200">
+          <button class="btn small">➤</button>
+        </form>
+      </aside>
+    </main>
+
+    <!-- Рука -->
+    <div id="handWrap">
+      <div id="handTitle"></div>
+      <div id="hand"></div>
+    </div>
+  </div>
+
+  <!-- Оверлей победителя -->
+  <div id="winOverlay" class="hidden"><div id="winBox"></div></div>
+  <!-- Модальное окно действий -->
+  <div id="modal" class="hidden"><div id="modalBox"></div></div>
+  <div id="toasts"></div>
+
+  <script src="/client.js"></script>
+</body>
+</html>
