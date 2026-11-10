@@ -54,6 +54,8 @@ console.log('=== 1. Ход: дверь ===');
   const bLvl = b.level;
   g.action('p2', { t: 'kick' });
   ok(b.level === Math.max(1, bLvl - 1), 'дверь: проклятие применяется сразу');
+  ok(g.reveal && g.reveal.kind === 'door' && !g.reveal.secret &&
+     g.reveal.cards[0].name === 'Сглаз', 'дверь: вытянутая карта показывается всем');
   ok(g.phase === 'charity', 'после проклятия — конец хода');
 
   // предмет из двери — в руку
@@ -104,6 +106,8 @@ console.log('=== 2. Подкидывание монстра из руки ===');
   g.action('p1', { t: 'playOneShot', uid: 'os2' });
   g.action('p1', { t: 'resolve' });
   ok(a.level >= 10 && g.phase === 'over' && g.winner === 'p1', 'победа над тремя монстрами завершает игру');
+  ok(g.reveal && g.reveal.secret && g.reveal.kind === 'treasure' &&
+     g.reveal.cards.length === 4, 'сокровища показываются только взявшему');
 }
 
 console.log('=== 3. Побег и дурняки ===');

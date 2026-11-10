@@ -284,6 +284,18 @@ aside, #table {
 #winBox { text-align: center; }
 #winBox h2 { font-size: 30px; margin: 10px 0 20px; color: var(--gold); }
 
+/* вытянутая карта */
+.reveal-wrap { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+.reveal-wrap .card.reveal {
+  width: 230px; min-height: 330px; font-size: 12px; gap: 6px; padding: 10px;
+  cursor: default;
+}
+.reveal-wrap .card.reveal:hover { transform: none; }
+.reveal-wrap .card.reveal .c-ico { font-size: 30px; }
+.reveal-wrap .card.reveal .c-name { font-size: 15px; }
+.reveal-wrap .card.reveal .c-text { font-size: 12px; }
+.reveal-wrap .card.reveal .c-img { height: 120px; }
+
 /* тосты */
 #toasts { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); z-index: 99;
   display: flex; flex-direction: column; gap: 6px; align-items: center; }

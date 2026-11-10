@@ -35,6 +35,7 @@ class Game {
     this.winner = null;
     this.log = [];
     this.chat = [];
+    this.reveal = null;   // последняя вытянутая карта (для показа на экране)
   }
 
   // ------------------------------------------------------------------ утилиты
@@ -295,6 +296,8 @@ class Game {
     if (this.phase !== 'kick') throw new Error('Сейчас не фаза двери');
     const card = this.draw('door', 1)[0];
     if (!card) throw new Error('В колоде кончились карты');
+    this.reveal = { kind: 'door', byId: p.id, byName: p.name, secret: false,
+                    cards: [card], ts: Date.now() };
     if (card.type === 'monster') {
       this.say(`${p.name} открыл дверь: ${card.name} (сила ${card.level})! БОЙ!`);
       this.startCombat(p, card);
@@ -377,6 +380,8 @@ class Game {
         const bonus = this.draw('treasure', 1);
         h.hand.push(...bonus);
         this.say(`${h.name} (помощник) получает 1 сокровище.`);
+        if (bonus.length) this.reveal = { kind: 'helper', byId: h.id, byName: h.name,
+          secret: true, cards: bonus, ts: Date.now() };
         if (this.hasRace(h, 'elf') && h.level < WIN_LEVEL - 1) {
           h.level += 1;
           this.say(`🧝 ${h.name} (${h.race.name}) получает +1 уровень за помощь.`);
@@ -384,6 +389,8 @@ class Game {
       }
       const tr = this.draw('treasure', treasures);
       f.hand.push(...tr);
+      if (tr.length) this.reveal = { kind: 'treasure', byId: f.id, byName: f.name,
+        secret: true, cards: tr, ts: Date.now() };
       this.combat = null;
       this.phase = 'charity';
       if (f.level >= WIN_LEVEL) return this.winGame(f);
@@ -572,7 +579,10 @@ class Game {
         if (p.equip.body) { this.discard(p.equip.body); p.equip.body = null; }
         for (const s of ['head', 'feet', 'transport', 'hands'])
           for (const c of p.equip[s].splice(0)) this.discard(c);
-        p.hand.push(...this.draw('door', 4));
+        const fresh = this.draw('door', 4);
+        p.hand.push(...fresh);
+        if (fresh.length) this.reveal = { kind: 'death', byId: p.id, byName: p.name,
+          secret: true, cards: fresh, ts: Date.now() };
         this.say(`${p.name} начинает заново и добирает 4 карты Дверей.`);
         break;
       }
@@ -711,6 +721,7 @@ class Game {
     this.treasureDiscard = [];
     this.combat = null;
     this.winner = null;
+    this.reveal = null;
     this.phase = 'lobby';
     this.say('Новая игра! Все вернулись в лобби.');
   }
@@ -784,6 +795,11 @@ class Game {
         monsterBonus: this.combat.monsterBonus - this.combat.monsterDebuff,
         wizardEscaped: this.combat.wizardEscaped,
         classModNote: this.classModNote(),
+      } : null,
+      reveal: this.reveal ? {
+        kind: this.reveal.kind, byId: this.reveal.byId, byName: this.reveal.byName,
+        secret: this.reveal.secret, ts: this.reveal.ts,
+        cards: this.reveal.cards.map((c) => this.cardPublic(c)),
       } : null,
       log: this.log.slice(-40),
       chat: this.chat.slice(-40),

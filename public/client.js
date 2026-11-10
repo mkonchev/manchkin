@@ -11,6 +11,7 @@ let myName = localStorage.getItem('mk_name') || '';
 let sellMode = false;         // режим продажи шмота
 let sel = new Set();          // выбранные для продажи uid
 let lastAskHandled = null;    // чтобы не спамить модалкой помощи
+let lastRevealTs = 0;         // какая вытянутая карта уже показана
 let reconnectTimer = null;
 let joining = null;           // {code} для автопереподключения
 
@@ -158,7 +159,30 @@ function render() {
   renderHand();
   renderLog();
   renderWin();
+  renderReveal();
   renderHelpModal();
+}
+
+// большая всплывашка с вытянутой картой
+function renderReveal() {
+  const r = S.reveal;
+  if (!r || r.ts === lastRevealTs) return;
+  if (r.secret && r.byId !== me) return;   // сокровища видит только взявший
+  lastRevealTs = r.ts;
+  const title = r.kind === 'door' ? `🚪 ${esc(r.byName)} открывает дверь`
+    : r.kind === 'death' ? `☠ ${esc(r.byName)} начинает заново`
+    : r.kind === 'helper' ? `💎 Сокровище помощнику: ${esc(r.byName)}`
+    : `💎 Сокровища за победу: ${esc(r.byName)}`;
+  openModal(`
+    <h3>${title}</h3>
+    <div class="reveal-wrap">${r.cards.map((c) => cardHTML(c, 'reveal')).join('')}</div>
+    <p style="text-align:center;color:var(--muted);font-size:12px;margin-top:10px">клик — закрыть</p>`);
+  $('modalBox').onclick = () => closeModal();
+  setTimeout(() => {
+    if (!$('modal').classList.contains('hidden') && $('modalBox').dataset.revealTs == r.ts)
+      closeModal();
+  }, 6000);
+  $('modalBox').dataset.revealTs = r.ts;
 }
 
 function phaseText() {
