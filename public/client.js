@@ -84,6 +84,10 @@ function bonusLabel(c) {
 }
 function cardHTML(c, extraClass = '') {
   if (!c) return '';
+  const imgHTML = c.img
+    ? `<div class="c-img"><img src="/img/${encodeURIComponent(c.img)}" alt="" loading="lazy"
+         onerror="this.parentElement.remove()"></div>`
+    : '';
   const bits = [];
   if (c.type === 'item' && c.big) bits.push('🧱 крупное');
   if (c.type === 'item' && c.hands === 2) bits.push('✋✋ две руки');
@@ -92,7 +96,7 @@ function cardHTML(c, extraClass = '') {
   if (c.type === 'monster' && c.levels) bits.push(`⭐ ${c.levels} · 💎 ${c.treasures}`);
   return `<div class="card t-${c.type} ${extraClass}" data-uid="${c.uid}">
     <div class="c-bonus">${bonusLabel(c)}</div>
-    <div class="c-ico">${cardEmoji(c)}</div>
+    ${imgHTML || `<div class="c-ico">${cardEmoji(c)}</div>`}
     <div class="c-name">${esc(c.name)}</div>
     ${c.text ? `<div class="c-text">${esc(c.text)}</div>` : ''}
     ${bits.length ? `<div class="c-text">${bits.join('<br>')}</div>` : ''}
@@ -211,6 +215,19 @@ function renderCombat() {
   $('sidePower').textContent = c.sidePower;
   const fighter = S.players.find((p) => p.id === c.fighterId);
   const helper = S.players.find((p) => p.id === c.helperId);
+  const acts = $('combatActions');
+  acts.innerHTML = '';
+  const yh = you();
+  if (S.phase === 'combat' && c.fighterId !== me && c.helperId !== me && yh) {
+    const mine = yh.hand.filter((x) => x.type === 'monster');
+    if (mine.length) {
+      const wb = document.createElement('button');
+      wb.className = 'btn danger';
+      wb.textContent = `👹 Подкинуть монстра (${mine.length})`;
+      wb.onclick = () => openMonsterPicker(mine);
+      acts.appendChild(wb);
+    }
+  }
   $('monsterCards').innerHTML = c.monsters.map((m) => cardHTML(m)).join('') +
     (c.monsterBonus ? `<div class="side-label">усиления: ${c.monsterBonus > 0 ? '+' : ''}${c.monsterBonus}</div>` : '') +
     (c.classModNote ? `<div class="side-label" style="color:${c.classModNote.active ? 'var(--red)' : 'var(--muted)'}">против класса: ${c.classModNote.bonus > 0 ? '+' : ''}${c.classModNote.bonus}${c.classModNote.active ? ' — АКТИВЕН!' : ''}</div>` : '');
@@ -488,6 +505,17 @@ function openEquippedMenu(c) {
       <button class="btn" id="mUneq">🧺 Снять в руку</button>
     </div>`);
   $('mUneq').onclick = () => { closeModal(); act({ t: 'unequip', uid: c.uid }); };
+}
+
+function openMonsterPicker(mine) {
+  openModal(`
+    <h3>👹 Кого подкидываем?</h3>
+    <div class="player-pick">
+      ${mine.map((c, i) => `<button class="btn" data-i="${i}"><span>${esc(c.name)}</span><span>сила ${c.level}</span></button>`).join('')}
+    </div>`);
+  $('modalBox').querySelectorAll('[data-i]').forEach((el) => {
+    el.onclick = () => { closeModal(); act({ t: 'wanderMonster', uid: mine[+el.dataset.i].uid }); };
+  });
 }
 
 function openPlayerMenu(p) {

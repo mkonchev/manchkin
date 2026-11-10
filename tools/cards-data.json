@@ -11,7 +11,8 @@
     "bad": {
       "t": "none"
     },
-    "tag": null
+    "tag": null,
+    "img": "demo.jpg"
   },
   {
     "deck": "door",

@@ -21,7 +21,7 @@ const rep = (deck, n, make) => { for (let i = 0; i < n; i++) deck.push(c(make())
 const js = (v) => JSON.stringify(v);
 for (const r of data) {
   const deck = r.deck === 'door' ? 'DOOR_DECK' : 'TREASURE_DECK';
-  const card = { type: r.type, name: r.name, text: r.text || '' };
+  const card = { type: r.type, name: r.name, text: r.text || '', img: r.img || null };
   if (r.type === 'monster') Object.assign(card, {
     level: r.level, levels: r.levels, treasures: r.treasures, bad: r.bad, tag: r.tag || null,
     classMod: r.classMod || null,

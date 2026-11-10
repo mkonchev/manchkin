@@ -6,7 +6,7 @@ const { DOOR_DECK, TREASURE_DECK } = require('../game/cards');
 
 // смысловые поля карты без id — по ним склеиваем одинаковые карты в "Копий"
 function fields(c) {
-  const o = { type: c.type, name: c.name, text: c.text || '' };
+  const o = { type: c.type, name: c.name, text: c.text || '', img: c.img || null };
   if (c.type === 'monster') {
     o.level = c.level; o.levels = c.levels; o.treasures = c.treasures;
     o.bad = c.bad; o.tag = c.tag || null; o.classMod = c.classMod || null;

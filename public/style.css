@@ -213,6 +213,11 @@ aside, #table {
 }
 .card:hover { transform: translateY(-3px); border-color: var(--accent); }
 .card .c-ico { font-size: 18px; }
+.card .c-img {
+  height: 52px; border-radius: 6px; overflow: hidden;
+  flex-shrink: 0; background: rgba(0,0,0,.3);
+}
+.card .c-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .card .c-name { font-weight: 700; font-size: 11px; line-height: 1.15; }
 .card .c-text { color: var(--muted); font-size: 10px; line-height: 1.2; overflow: hidden; }
 .card .c-bonus {

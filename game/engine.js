@@ -711,7 +711,7 @@ class Game {
       bonus: c.bonus, level: c.level, slot: c.slot, big: c.big,
       runBonus: c.runBonus, price: c.price, arg: c.arg,
       levels: c.levels, treasures: c.treasures, hands: c.hands,
-      power: c.power, classMod: c.classMod || null,
+      power: c.power, classMod: c.classMod || null, img: c.img || null,
     };
   }
   playerPublic(p, withHand) {

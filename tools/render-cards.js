@@ -61,9 +61,11 @@ function bits(c) {
 function cardHTML(c) {
   const emoji = c.type === 'item' ? (SLOT_EMOJI[c.slot] || '🧳') : TYPE_EMOJI[c.type];
   const bonus = c.type === 'monster' ? `${c.level}` : (c.bonus ? `+${c.bonus}` : (c.arg ? `+${c.arg}⭐` : ''));
+  const imgHTML = c.img ? `<div class="c-img"><img src="/img/${encodeURIComponent(c.img)}" alt="" loading="lazy"
+      onerror="this.parentElement.remove()"></div>` : '';
   return `<div class="card t-${c.type}">
     ${bonus ? `<div class="c-bonus">${bonus}</div>` : ''}
-    <div class="c-ico">${emoji}</div>
+    ${imgHTML || `<div class="c-ico">${emoji}</div>`}
     <div class="c-name">${esc(c.name)}</div>
     ${c.text ? `<div class="c-text">${esc(c.text)}</div>` : ''}
     <div class="c-bits">${bits(c).map(esc).join('<br>')}</div>
@@ -91,6 +93,7 @@ const html = `<!DOCTYPE html>
   .note { font-size: 13px; color: var(--muted); margin-left: 12px; font-weight: 400; }
   .grid { display: flex; flex-wrap: wrap; gap: 10px; }
   .card { width: 190px; min-height: 170px; cursor: default; }
+  .card .c-img { height: 90px; }
   .card:hover { transform: none; }
   .c-bits { font-size: 10px; color: #9a93b8; border-top: 1px dashed var(--line); padding-top: 4px; margin-top: auto; }
   .card { display: flex; flex-direction: column; gap: 3px; }

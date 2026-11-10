@@ -78,6 +78,10 @@ for rn in range(5, ws.max_row + 1):
     param = num(val(rn, "Параметр эффекта"))
     text = val(rn, "Текст/шутка")
     text = str(text).strip() if text else ""
+    img_raw = val(rn, "Картинка")
+    img = str(img_raw).strip() if img_raw else None
+    if img and ("/" in img or chr(92) in img or ".." in img):
+        row_err.append(f"«Картинка» — только имя файла без путей («{img}»)"); img = None
     eff_ru = val(rn, "Дурняк/Эффект")
     eff_ru = str(eff_ru).strip() if eff_ru else ""
     slot_ru = val(rn, "Слот")
@@ -86,7 +90,8 @@ for rn in range(5, ws.max_row + 1):
     if slot_ru and not slot: row_err.append(f"неизвестный слот «{slot_ru}»")
     yes = lambda col: ws.cell(row=rn, column=H(col)).value in YES if H(col) else False
 
-    card = {"deck": deck or "door", "count": count, "type": ctype or "monster", "name": name, "text": text}
+    card = {"deck": deck or "door", "count": count, "type": ctype or "monster", "name": name,
+            "text": text, "img": img}
     if ctype == "monster":
         if bonus is None: row_err.append("у монстра пустая «Сила/Бонус»")
         bad_ru = eff_ru
