@@ -71,7 +71,8 @@ const KLASS_EMOJI = { run2: '🏃', multiTransport: '🚗', thief: '🗝️', le
   multiFeet: '👟', multiBig: '🧱', escapeOnce: '🌀',
   warrior: '⚔️', wizard: '🧙', cleric: '✨' };
 const KLASS_NAME = { run2: 'Серёге', multiTransport: 'Максу', thief: 'Данилу',
-  levelHead2: 'Славе', multiFeet: 'Кузяну', multiBig: 'Валере', escapeOnce: 'Тимуру' };
+  levelHead2: 'Славе', multiFeet: 'Кузяну', multiBig: 'Валере', escapeOnce: 'Тимуру',
+  ukhta: 'жителям Ухты', moscow: 'жителям Москвы', spb: 'жителям СПб' };
 
 function cardEmoji(c) {
   if (c.type === 'item') return SLOT_EMOJI[c.slot] || '🧳';

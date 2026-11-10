@@ -125,7 +125,7 @@ class Game {
   // эффективный бонус предмета: базовый + синергия, если надел «свой» класс
   effBonus(p, c) {
     let b = c.bonus;
-    if (c.synergy && p.klass && p.klass.power === c.synergy.power) b += c.synergy.bonus;
+    if (c.synergy && this.modApplies(p, c.synergy.power)) b += c.synergy.bonus;
     return b;
   }
   equipBonus(p) {

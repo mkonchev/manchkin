@@ -28,7 +28,10 @@ function bits(c) {
     if (c.hands === 2) b.push('занимает две руки');
     if (c.big) b.push('🧱 крупное');
     if (c.runBonus) b.push(`👟 +${c.runBonus} к побегу`);
-    if (c.synergy) b.push(`🌟 для своего класса: +${c.synergy.bonus}`);
+    const SYN_RU = { run2: 'Серёге', multiTransport: 'Максу', thief: 'Данилу',
+      levelHead2: 'Славе', multiFeet: 'Кузяну', multiBig: 'Валере', escapeOnce: 'Тимуру',
+      ukhta: 'жителям Ухты', moscow: 'жителям Москвы', spb: 'жителям СПб' };
+    if (c.synergy) b.push(`🌟 ${SYN_RU[c.synergy.power] || c.synergy.power}: +${c.synergy.bonus}`);
     if (c.price) b.push(`💰 ${c.price} золота`);
   }
   if (c.type === 'oneShot') b.push(`+${c.bonus} в бою, однократно`);

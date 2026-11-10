@@ -736,7 +736,11 @@
     "hands": 1,
     "big": false,
     "price": 400,
-    "runBonus": 0
+    "runBonus": 0,
+    "synergy": {
+      "power": "spb",
+      "bonus": 2
+    }
   },
   {
     "deck": "treasure",
