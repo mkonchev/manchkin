@@ -500,5 +500,46 @@ console.log('=== 10. Поиск приключений (Look For Trouble) ===');
   ok(g.phase === 'charity', 'пропуск фазы ведёт к концу хода');
 }
 
+console.log('=== 11. Торг за помощь и кап 9-го с помощником ===');
+{
+  const g = new Game('T11');
+  g.addPlayer('p1', 'Аня'); g.addPlayer('p2', 'Боря'); g.start();
+  const [a, b] = [g.find('p1'), g.find('p2')];
+  for (const p of [a, b]) while (p.hand.length > 5) g.discard(p.hand.pop());
+  g.turnIdx = 0; g.phase = 'kick';
+  g.doorDeck.push(monster('Слабый', 1));
+  g.action('p1', { t: 'kick' });
+
+  // Аня зовёт, Боря заламывает 2 сокровища, Аня соглашается
+  g.action('p1', { t: 'askHelp', targetId: 'p2' });
+  g.action('p2', { t: 'proposeHelpFee', amount: 2 });
+  ok(g.combat.feeProposal && g.combat.feeProposal.amount === 2 && g.combat.helperId === null,
+    'торг висит на решении бойца');
+  g.action('p1', { t: 'respondFee', accept: true });
+  ok(g.combat.helperId === 'p2' && g.combat.helperFee === 2, 'сделка заключена: помощь за 2');
+
+  // Боря на 9-м уровне — с помощником он не должен достичь 10-го
+  a.level = 9;
+  g.action('p1', { t: 'resolve' }); // победа (2 против 1), награда 1 ур
+  ok(a.level === 9, 'с помощником уровень капится на 9 (было 9, осталось 9)');
+  ok(g.phase !== 'over', 'игра не окончена (кап сработал)');
+  ok(b.hand.length >= 3, 'помощник получил 1 + 2 сокровища по торгу');
+
+  // отказ от торга -> обычная помощь
+  g.turnIdx = 1; g.phase = 'kick';
+  g.doorDeck.push(monster('Опять слабый', 1));
+  g.action('p2', { t: 'kick' });
+  g.action('p2', { t: 'askHelp', targetId: 'p1' });
+  g.action('p1', { t: 'proposeHelpFee', amount: 5 });
+  g.action('p2', { t: 'respondFee', accept: false });
+  ok(g.combat.askId === 'p1' && g.combat.feeProposal === null, 'отказ от торга возвращает решение Ане');
+  const aHand0 = a.hand.length;
+  g.action('p1', { t: 'respondHelp', accept: true });
+  ok(g.combat.helperId === 'p1' && g.combat.helperFee === 0, 'обычная помощь без торга');
+  g.action('p2', { t: 'resolve' });
+  ok(a.hand.length === aHand0 + 1, 'без торга помощник получает 1 сокровище');
+  g.phase = 'charity';
+}
+
 console.log(`ИТОГО: ✅ ${pass}  ❌ ${fail}`);
 process.exit(fail ? 1 : 0);

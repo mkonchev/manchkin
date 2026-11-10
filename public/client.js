@@ -264,7 +264,7 @@ function renderCombat() {
     (c.monsterBonus ? `<div class="side-label">усиления: ${c.monsterBonus > 0 ? '+' : ''}${c.monsterBonus}</div>` : '') +
     (c.classModNote ? `<div class="side-label" style="color:${c.classModNote.active ? 'var(--red)' : 'var(--muted)'}">против класса: ${c.classModNote.bonus > 0 ? '+' : ''}${c.classModNote.bonus}${c.classModNote.active ? ' — АКТИВЕН!' : ''}</div>` : '');
   $('sideCards').innerHTML =
-    `<div class="side-label">${esc(fighter?.name || '?')}${helper ? ` + ${esc(helper.name)}` : ''}</div>` +
+    `<div class="side-label">${esc(fighter?.name || '?')}${helper ? ` + ${esc(helper.name)}${c.helperFee ? ` 💰за ${c.helperFee} 💎` : ''}` : ''}</div>` +
     (c.sideBonus ? `<div class="side-label">разовые карты: +${c.sideBonus}</div>` : '');
 }
 
@@ -512,20 +512,54 @@ function renderWin() {
 
 function renderHelpModal() {
   const c = S.combat;
-  if (c && c.askId === me && lastAskHandled !== c.askId + ':' + c.fighterId) {
-    lastAskHandled = c.askId + ':' + c.fighterId;
+  if (!c) { lastAskHandled = null; return; }
+  // боец решает: соглашаться ли на торг
+  if (c.feeProposal && c.feeProposal.helperId && c.fighterId === me) {
+    const key = 'fee:' + c.feeProposal.helperId + ':' + c.feeProposal.amount;
+    if (lastAskHandled === key) return;
+    lastAskHandled = key;
+    openModal(`
+      <h3>💰 Торг за помощь</h3>
+      <p style="text-align:center;font-size:15px">
+        ${esc(c.feeProposal.helperName)} согласен помочь за
+        <b style="color:var(--gold)">${c.feeProposal.amount} сокровищ(а)</b> сверху.
+      </p>
+      <div class="m-actions">
+        <button class="btn primary" id="feeYes">🤝 Согласен</button>
+        <button class="btn danger" id="feeNo">🙈 Не согласен</button>
+      </div>`, true);
+    $('feeYes').onclick = () => { act({ t: 'respondFee', accept: true }); closeModal(); };
+    $('feeNo').onclick = () => { act({ t: 'respondFee', accept: false }); closeModal(); };
+    return;
+  }
+  // помощник решает: помочь, поторговаться или отказать
+  if (c.askId === me) {
+    const key = 'ask:' + c.fighterId + ':' + (c.feeProposal ? c.feeProposal.amount : 0);
+    if (lastAskHandled === key) return;
+    lastAskHandled = key;
     const f = S.players.find((p) => p.id === c.fighterId);
     openModal(`
       <h3>🙋 ${esc(f?.name || '?')} просит помощи в бою!</h3>
-      <p style="text-align:center;color:var(--muted)">Помогешь — получишь 1 сокровище при победе.<br>Но монстр будет бить по вам обоим…</p>
+      <p style="text-align:center;color:var(--muted)">Помогешь — получишь 1 сокровище при победе.<br>Но монстр будет бить по вам обоим…<br><b>С помощником до 10-го уровня не дорастают!</b></p>
       <div class="m-actions">
         <button class="btn primary" id="helpYes">🤝 Помогаю</button>
+        <button class="btn" id="helpFee">💰 Поторговаться</button>
         <button class="btn danger" id="helpNo">🙈 Отказываю</button>
       </div>`, true);
     $('helpYes').onclick = () => { act({ t: 'respondHelp', accept: true }); closeModal(); };
     $('helpNo').onclick = () => { act({ t: 'respondHelp', accept: false }); closeModal(); };
+    $('helpFee').onclick = () => {
+      const amounts = [1, 2, 3, 4, 5];
+      openModal(`
+        <h3>💰 Сколько хочешь за помощь?</h3>
+        <div class="player-pick">
+          ${amounts.map((n, i) => `<button class="btn" data-i="${i}"><span>${n} сокровищ(а)</span><span>💎×${n}</span></button>`).join('')}
+        </div>`, true);
+      $('modalBox').querySelectorAll('[data-i]').forEach((el) => {
+        el.onclick = () => { act({ t: 'proposeHelpFee', amount: amounts[+el.dataset.i] }); closeModal(); };
+      });
+    };
   }
-  if (!c || c.askId !== me) lastAskHandled = null;
 }
 
 // ------------------------------------------------------------------- модалки

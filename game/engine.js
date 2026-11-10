@@ -323,6 +323,8 @@ class Game {
       monsterDebuff: 0,
       sideBonus: 0,
       helperId: null,
+      helperFee: 0,
+      feeProposal: null,
       askId: null,
       wizardEscaped: false,
     };
@@ -375,12 +377,17 @@ class Game {
       const treasures = this.combat.monsters.reduce((a, m) => a + m.treasures, 0);
       this.say(`ПОБЕДА! ${f.name} (${sp}) побеждает ${this.combat.monsters[0].name} (${mp}).`);
       for (const m of this.combat.monsters) this.discard(m);
-      f.level = Math.min(WIN_LEVEL, f.level + levels);
+      const cap = h ? WIN_LEVEL - 1 : WIN_LEVEL;   // с помощником 10-го не достигают
+      const before = f.level;
+      f.level = Math.min(cap, f.level + levels);
       this.say(`${f.name} получает ${levels} ур. (${f.level}) и ${treasures} сокровищ(а).`);
+      if (h && before + levels >= WIN_LEVEL)
+        this.say(`⚖ С помощником до ${WIN_LEVEL}-го уровня не дорастают!`);
       if (h) {
-        const bonus = this.draw('treasure', 1);
+        const fee = this.combat.helperFee || 0;
+        const bonus = this.draw('treasure', 1 + fee);
         h.hand.push(...bonus);
-        this.say(`${h.name} (помощник) получает 1 сокровище.`);
+        this.say(`${h.name} (помощник) получает ${1 + fee} сокровищ(а)${fee ? ` (по торгу +${fee})` : ''}.`);
         if (bonus.length) this.reveal = { kind: 'helper', byId: h.id, byName: h.name,
           secret: true, cards: bonus, ts: Date.now() };
         if (this.hasRace(h, 'elf') && h.level < WIN_LEVEL - 1) {
@@ -420,15 +427,16 @@ class Game {
   }
   respondHelp(p, accept) {
     if (!this.combat || this.combat.askId !== p.id) throw new Error('Тебя не звали');
-    const f = this.fighter();
     if (accept) {
       if (this.combat.helperId) throw new Error('Помощник уже есть');
       this.combat.helperId = p.id;
+      this.combat.helperFee = 0;
       this.say(`🤝 ${p.name} помогает в бою!`);
     } else {
       this.say(`${p.name} отказывает в помощи. Как некрасиво.`);
     }
     this.combat.askId = null;
+    this.combat.feeProposal = null;
   }
 
   wanderMonster(p, uid) {
@@ -440,6 +448,33 @@ class Game {
     this.combat.monsters.push(card);
     this.say(`👹 ${p.name} подкидывает в бой ${card.name} (сила ${card.level})!`);
   }
+  proposeHelpFee(p, amount) {
+    if (!this.combat || this.phase !== 'combat' || this.combat.askId !== p.id)
+      throw new Error('Тебя сейчас не зовут на помощь');
+    if (this.combat.helperId) throw new Error('Помощник уже есть');
+    const n = Math.floor(amount);
+    if (!Number.isFinite(n) || n < 1 || n > 10) throw new Error('Ставка от 1 до 10 сокровищ');
+    this.combat.feeProposal = { amount: n, helperId: p.id };
+    this.combat.askId = null;
+    this.say(`💰 ${p.name} торгуется: поможет за ${n} сокровищ.`);
+  }
+  respondFee(p, accept) {
+    if (!this.combat || !this.combat.feeProposal) throw new Error('Торг сейчас не идёт');
+    const f = this.fighter();
+    if (!f || f.id !== p.id) throw new Error('Условия принимает только боец');
+    const { amount, helperId } = this.combat.feeProposal;
+    const h = this.find(helperId);
+    if (accept && h) {
+      this.combat.helperId = h.id;
+      this.combat.helperFee = amount;
+      this.say(`🤝 ${p.name} соглашается: ${h.name} помогает за ${amount} сокровищ.`);
+    } else {
+      this.say(`${p.name} не соглашается на торг с ${h ? h.name : '???'}.`);
+      if (h) this.combat.askId = h.id;
+    }
+    this.combat.feeProposal = null;
+  }
+
   playOneShot(p, uid) {
     if (!this.combat || this.phase !== 'combat') throw new Error('Только в бою');
     if (!this.isFighterOrHelper(p)) throw new Error('Только участник боя');
@@ -815,6 +850,8 @@ class Game {
       case 'wizardEscape': return this.wizardEscape(p);
       case 'askHelp': return this.askHelp(p, msg.targetId);
       case 'respondHelp': return this.respondHelp(p, !!msg.accept);
+      case 'proposeHelpFee': return this.proposeHelpFee(p, msg.amount);
+      case 'respondFee': return this.respondFee(p, !!msg.accept);
       case 'playOneShot': return this.playOneShot(p, msg.uid);
       case 'playEnhancer': return this.playEnhancer(p, msg.uid);
       case 'wanderMonster': return this.wanderMonster(p, msg.uid);
@@ -937,6 +974,12 @@ class Game {
         fighterId: this.combat.fighterId,
         helperId: this.combat.helperId,
         askId: this.combat.askId,
+        helperFee: this.combat.helperFee || 0,
+        feeProposal: this.combat.feeProposal ? {
+          amount: this.combat.feeProposal.amount,
+          helperId: this.combat.feeProposal.helperId,
+          helperName: (this.find(this.combat.feeProposal.helperId) || {}).name || '???',
+        } : null,
         monsters: this.combat.monsters.map((m) => this.cardPublic(m)),
         monsterPower: this.monsterPower(),
         sidePower: this.sidePower(),
