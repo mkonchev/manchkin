@@ -243,6 +243,17 @@ console.log('=== 4. Классы и ПМЖ ===');
   a.hand.push({ type: 'race', name: 'Ухта', text: '', power: 'ukhta', uid: 'r3' });
   g.action('p1', { t: 'playRace', uid: 'r3' });
   ok(a.race && a.race.power === 'ukhta', 'Ухта доступна всем');
+
+  // обратный порядок: сначала ПМЖ, потом класс — запрет тоже работает
+  a.klass = null; // сценарий «ПМЖ без класса»
+  a.hand.push({ type: 'race', name: 'Москва', text: '', power: 'moscow', uid: 'r4' });
+  g.action('p1', { t: 'playRace', uid: 'r4' }); // без класса Москва разрешена
+  a.hand.push({ type: 'klass', name: 'Серёга', text: '', power: 'run2', uid: 'k10' });
+  expectThrow(() => g.action('p1', { t: 'playClass', uid: 'k10' }),
+    'Москва + Серёга после ПМЖ запрещено', 'там жить не может');
+  a.hand.push({ type: 'klass', name: 'Кузян', text: '', power: 'multiFeet', uid: 'k11' });
+  g.action('p1', { t: 'playClass', uid: 'k11' });
+  ok(a.klass && a.klass.power === 'multiFeet', 'Москва + Кузян допустимо');
 }
 
 console.log('=== 5. Модификаторы монстров ===');

@@ -208,7 +208,13 @@ class Game {
   playClass(p, uid) {
     if (!this.ownTurnOrInCombat(p)) throw new Error('Сейчас нельзя сменить класс');
     const card = this.takeFromHand(p, uid);
-    if (card.type !== 'klass') throw new Error('Это не класс');
+    if (card.type !== 'klass') { p.hand.push(card); throw new Error('Это не класс'); }
+    for (const [res, powers] of Object.entries(Game.PZH_FORBIDDEN)) {
+      if (p.race && p.race.power === res && powers.includes(card.power)) {
+        p.hand.push(card);
+        throw new Error(`Ты живёшь в «${p.race.name}» — «${card.name}» там жить не может!`);
+      }
+    }
     if (p.klass) this.discard(p.klass);
     p.klass = card;
     this.say(`${p.name} теперь ${card.name}!`);
