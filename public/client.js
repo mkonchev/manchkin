@@ -194,6 +194,7 @@ function phaseText() {
     case 'lobby': return 'Лобби — жди начала';
     case 'kick': return `🚪 ${name}: открывает дверь`;
     case 'trouble': return `🔍 ${name}: ищет приключения`;
+    case 'curseChoice': return `💀 ${name}: кому достанется проклятие?`;
     case 'combat': return `⚔ БОЙ: ${name} против монстра!`;
     case 'run': return `🏃 ${name} убегает!`;
     case 'charity': return `🎒 ${name} заканчивает ход`;
@@ -309,6 +310,20 @@ function renderTurnActions() {
     b.textContent = '🚪 Открыть дверь';
     b.onclick = () => act({ t: 'kick' });
     box.appendChild(b);
+  }
+  if (myTurn() && S.phase === 'curseChoice' && S.pendingCurse) {
+    const self = document.createElement('button');
+    self.className = 'btn big';
+    self.textContent = '💀 Применить к себе';
+    self.onclick = () => act({ t: 'curseSelf', uid: S.pendingCurse.uid });
+    box.appendChild(self);
+    const throwB = document.createElement('button');
+    throwB.className = 'btn danger big';
+    throwB.textContent = '🎯 Кинуть в игрока…';
+    throwB.onclick = () => pickPlayer((t) =>
+      act({ t: 'curseThrow', uid: S.pendingCurse.uid, targetId: t.id }),
+      `Кого проклинаем «${S.pendingCurse.name}»?`);
+    box.appendChild(throwB);
   }
   if (myTurn() && S.phase === 'trouble') {
     const y = you();

@@ -76,6 +76,15 @@ while (g.phase !== 'over' && steps < MAX) {
         }
         break;
       }
+      case 'curseChoice': {
+        if (rnd() < 0.5) {
+          g.action(cur.id, { t: 'curseSelf', uid: g.pendingCurse.uid });
+        } else {
+          const victim = pick(g.players.filter((p) => p.id !== cur.id));
+          g.action(cur.id, { t: 'curseThrow', uid: g.pendingCurse.uid, targetId: victim.id });
+        }
+        break;
+      }
       case 'trouble': {
         const m = cur.hand.find((c) => c.type === 'monster');
         if (m && rnd() < 0.5) {

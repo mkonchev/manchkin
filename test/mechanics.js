@@ -56,7 +56,8 @@ console.log('=== 1. Ход: дверь ===');
   ok(b.level === Math.max(1, bLvl - 1), 'дверь: проклятие применяется сразу');
   ok(g.reveal && g.reveal.kind === 'door' && !g.reveal.secret &&
      g.reveal.cards[0].name === 'Сглаз', 'дверь: вытянутая карта показывается всем');
-  ok(g.phase === 'trouble', 'после проклятия — поиск приключений');
+  ok(g.phase === 'curseChoice' && g.pendingCurse && g.pendingCurse.name === 'Сглаз',
+    'после проклятия — выбор жертвы');
 
   // предмет из двери — в руку
   g.turnIdx = 0; g.phase = 'kick';
@@ -460,7 +461,13 @@ console.log('=== 10. Поиск приключений (Look For Trouble) ===');
   g.turnIdx = 0; g.phase = 'kick';
   g.doorDeck.push({ type: 'curse', name: 'Сглаз', effect: 'loseLevel', arg: 1, text: '', uid: 'cu1' });
   g.action('p1', { t: 'kick' });
-  ok(g.phase === 'trouble', 'после проклятия можно искать приключения');
+  ok(g.phase === 'curseChoice', 'вытянутое проклятие можно передать, а не только себе');
+  const cUid = g.pendingCurse.uid;
+  const bLvl0 = b.level;
+  g.action('p1', { t: 'curseThrow', uid: cUid, targetId: 'p2' });
+  ok(b.level === Math.max(1, bLvl0 - 1) && a.level === 1 && g.phase === 'trouble',
+    'проклятие брошено в Борю, а не в себя');
+  expectThrow(() => g.action('p1', { t: 'endTurn' }), 'endTurn из выбора жертвы запрещён', 'не конец хода');
 
   // обыск комнаты
   const h0 = a.hand.length, doors0 = g.doorDeck.length;

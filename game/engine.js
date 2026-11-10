@@ -304,10 +304,9 @@ class Game {
       this.say(`${p.name} открыл дверь: ${card.name} (сила ${card.level})! БОЙ!`);
       this.startCombat(p, card);
     } else if (card.type === 'curse') {
-      this.say(`${p.name} открыл дверь: проклятие «${card.name}».`);
-      this.applyCurse(p, card);
-      this.discard(card);
-      this.phase = 'trouble';
+      this.say(`${p.name} открыл дверь: проклятие «${card.name}» — кому оно достанется?`);
+      this.pendingCurse = card;
+      this.phase = 'curseChoice';
     } else {
       p.hand.push(card);
       this.say(`${p.name} открывает дверь — там «${card.name}». Забирает в руку.`);
@@ -735,6 +734,32 @@ class Game {
     this.say(`${p.name} отклоняет предложение ${from ? from.name : '???'}.`);
   }
 
+  // --------------------------------------- проклятие из двери: выбор жертвы
+  inCurseChoice(p) {
+    if (this.phase !== 'curseChoice' || this.turnPlayer()?.id !== p.id)
+      throw new Error('Сейчас не выбор жертвы проклятия');
+    if (!this.pendingCurse) throw new Error('Проклятие не найдено');
+  }
+  curseSelf(p, uid) {
+    this.inCurseChoice(p);
+    if (this.pendingCurse.uid !== uid) throw new Error('Это не текущее проклятие');
+    this.applyCurse(p, this.pendingCurse);
+    this.discard(this.pendingCurse);
+    this.pendingCurse = null;
+    this.phase = 'trouble';
+  }
+  curseThrow(p, uid, targetId) {
+    this.inCurseChoice(p);
+    if (this.pendingCurse.uid !== uid) throw new Error('Это не текущее проклятие');
+    const t = this.find(targetId);
+    if (!t) throw new Error('Жертва не найдена');
+    this.say(`💀 ${p.name} бросает проклятие «${this.pendingCurse.name}» в ${t.name}!`);
+    this.applyCurse(t, this.pendingCurse);
+    this.discard(this.pendingCurse);
+    this.pendingCurse = null;
+    this.phase = 'trouble';
+  }
+
   // ---------------------------------------- поиск приключений (Look For Trouble)
   inTrouble(p) {
     if (this.phase !== 'trouble' || this.turnPlayer()?.id !== p.id)
@@ -763,6 +788,7 @@ class Game {
   // -------------------------------------------------------------- конец хода
   endTurn(p) {
     if (this.turnPlayer()?.id !== p.id) throw new Error('Не твой ход');
+    if (this.phase !== 'charity') throw new Error('Сейчас не конец хода');
     if (this.combat) throw new Error('Сначала закончи бой');
     if (p.hand.length > HAND_LIMIT)
       throw new Error(`Благотворительность: сбрось ${p.hand.length - HAND_LIMIT} карт(ы)`);
@@ -805,6 +831,8 @@ class Game {
       case 'heal': return this.clericHeal(p);
       case 'levelUp': return this.playLevelUp(p, msg.uid);
       case 'endTurn': return this.endTurn(p);
+      case 'curseSelf': return this.curseSelf(p, msg.uid);
+      case 'curseThrow': return this.curseThrow(p, msg.uid, msg.targetId);
       case 'lootRoom': return this.lootRoom(p);
       case 'lookForTrouble': return this.lookForTrouble(p, msg.uid);
       case 'skipTrouble': return this.skipTrouble(p);
@@ -841,6 +869,7 @@ class Game {
     this.combat = null;
     this.winner = null;
     this.reveal = null;
+    this.pendingCurse = null;
     this.offers = [];
     this.phase = 'lobby';
     this.say('Новая игра! Все вернулись в лобби.');
@@ -936,6 +965,7 @@ class Game {
             ts: o.ts,
           };
         }),
+      pendingCurse: this.pendingCurse ? this.cardPublic(this.pendingCurse) : null,
       reveal: this.reveal ? {
         kind: this.reveal.kind, byId: this.reveal.byId, byName: this.reveal.byName,
         secret: this.reveal.secret, ts: this.reveal.ts,
