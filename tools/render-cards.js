@@ -87,9 +87,14 @@ const html = `<!DOCTYPE html>
 <html lang="ru"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Карты компании — галерея</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Philosopher:wght@400;700&family=Neucha&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/style.css">
 <style>
   body { overflow: auto; height: auto; padding: 24px; }
+  #ambient span { position: absolute; bottom: auto; top: -12px; }
+  @keyframes emberRise { 0% { transform: translate(0,0); opacity: 0; } 8% { opacity: .5; } 100% { transform: translate(var(--ember-sway,30px), 120vh); opacity: 0; } }
   h1 { margin: 0 0 6px; }
   .sub { color: var(--muted); margin-bottom: 24px; }
   h2 { margin: 28px 0 12px; color: var(--gold); }
@@ -102,6 +107,7 @@ const html = `<!DOCTYPE html>
   .c-bits { font-size: 10px; color: #9a93b8; border-top: 1px dashed var(--line); padding-top: 4px; margin-top: auto; }
   .card { display: flex; flex-direction: column; gap: 3px; }
 </style></head><body>
+<div id="ambient"></div>
 <h1>⚔ Карты компании</h1>
 <div class="sub">Дверей: ${CARD_INFO.doorCount} · Сокровищ: ${CARD_INFO.treasureCount} · Монстров: ${CARD_INFO.monsters} · Проклятий: ${CARD_INFO.curses} — обновляется командой node tools/render-cards.js</div>
 ${section('👹 Монстры', doors.filter((c) => c.type === 'monster'))}
@@ -114,6 +120,21 @@ ${section('🧳 Шмот', tr.filter((c) => c.type === 'item'))}
 ${section('🧪 Разовые карты', tr.filter((c) => c.type === 'oneShot'))}
 ${section('⭐ Карты уровней', tr.filter((c) => c.type === 'levelUp'))}
 <script>
+(function makeEmbers() {
+  const wrap = document.getElementById('ambient');
+  const colors = ['#ffc857', '#8f6cff', '#ff5d5d', '#7dde8b', '#63c7ff'];
+  for (let i = 0; i < 26; i++) {
+    const sp = document.createElement('span');
+    sp.style.left = (Math.random() * 100).toFixed(1) + '%';
+    sp.style.setProperty('--ember-d', (9 + Math.random() * 14).toFixed(1) + 's');
+    sp.style.setProperty('--ember-delay', (Math.random() * 16).toFixed(1) + 's');
+    sp.style.setProperty('--ember-sway', (Math.round((Math.random() - 0.5) * 160)) + 'px');
+    sp.style.setProperty('--ember-c', colors[i % colors.length]);
+    const sz = 2 + Math.random() * 4;
+    sp.style.width = sp.style.height = sz.toFixed(1) + 'px';
+    wrap.appendChild(sp);
+  }
+})();
 let tiltCard = null;
 function tiltReset(card) {
   card.style.transition = 'transform .5s cubic-bezier(.2,.8,.3,1), box-shadow .5s';

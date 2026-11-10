@@ -616,5 +616,23 @@ document.addEventListener('mouseout', (e) => {
   }
 });
 
+// ---------------------------------------------------- живой фон (угольки)
+(function makeEmbers() {
+  const wrap = document.getElementById('ambient');
+  if (!wrap) return;
+  const colors = ['#ffc857', '#8f6cff', '#ff5d5d', '#7dde8b', '#63c7ff'];
+  for (let i = 0; i < 26; i++) {
+    const sp = document.createElement('span');
+    sp.style.left = (Math.random() * 100).toFixed(1) + '%';
+    sp.style.setProperty('--ember-d', (9 + Math.random() * 14).toFixed(1) + 's');
+    sp.style.setProperty('--ember-delay', (Math.random() * 16).toFixed(1) + 's');
+    sp.style.setProperty('--ember-sway', (Math.round((Math.random() - 0.5) * 160)) + 'px');
+    sp.style.setProperty('--ember-c', colors[i % colors.length]);
+    const sz = 2 + Math.random() * 4;
+    sp.style.width = sp.style.height = sz.toFixed(1) + 'px';
+    wrap.appendChild(sp);
+  }
+})();
+
 // --------------------------------------------------------------------- старт
 connect();
