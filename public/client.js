@@ -12,6 +12,7 @@ let sellMode = false;         // режим продажи шмота
 let sel = new Set();          // выбранные для продажи uid
 let lastAskHandled = null;    // чтобы не спамить модалкой помощи
 let lastRevealTs = 0;         // какая вытянутая карта уже показана
+let lastOfferTs = 0;          // какое входящее предложение уже показано
 let reconnectTimer = null;
 let joining = null;           // {code} для автопереподключения
 
@@ -160,6 +161,7 @@ function render() {
   renderLog();
   renderWin();
   renderReveal();
+  renderOffers();
   renderHelpModal();
 }
 
@@ -535,6 +537,75 @@ function openEquippedMenu(c) {
   $('mUneq').onclick = () => { closeModal(); act({ t: 'unequip', uid: c.uid }); };
 }
 
+// мульти-выбор карт из своей руки
+function pickCardsModal(cards, title, onDone) {
+  const sel = new Set();
+  openModal(`
+    <h3>${esc(title)}</h3>
+    <div class="pick-cards">${cards.map((c) => cardHTML(c)).join('')}</div>
+    <p style="text-align:center;color:var(--muted);font-size:12px">кликай по картам, чтобы выбрать</p>
+    <div class="m-actions">
+      <button class="btn primary" id="pickDone" disabled>Отправить (0)</button>
+    </div>`);
+  const refresh = () => {
+    const btn = $('pickDone');
+    btn.textContent = `Отправить (${sel.size})`;
+    btn.disabled = sel.size === 0;
+    $('modalBox').querySelectorAll('.pick-cards .card').forEach((el) =>
+      el.classList.toggle('selected', sel.has(el.dataset.uid)));
+  };
+  $('modalBox').querySelectorAll('.pick-cards .card').forEach((el) => {
+    el.onclick = () => {
+      if (sel.has(el.dataset.uid)) sel.delete(el.dataset.uid); else sel.add(el.dataset.uid);
+      refresh();
+    };
+  });
+  $('pickDone').onclick = () => {
+    const uids = [...sel];
+    closeModal();
+    onDone(uids);
+  };
+}
+
+// входящие предложения обмена
+function renderOffers() {
+  if (!$('modal').classList.contains('hidden')) return;   // не перебиваем открытые окна
+  const r = S.offers && [...S.offers].sort((a, b) => b.ts - a.ts)
+    .find((o) => o.targetId === me && o.ts !== lastOfferTs);
+  if (!r) return;
+  lastOfferTs = r.ts;
+  if (r.kind === 'offer') {
+    openModal(`
+      <h3>🤝 ${esc(r.fromName)} предлагает тебе обмен</h3>
+      <p style="text-align:center;color:var(--muted);font-size:13px">Ты получишь эти карты просто так:</p>
+      <div class="reveal-wrap">${r.cards.map((c) => cardHTML(c, 'reveal')).join('')}</div>
+      <div class="m-actions">
+        <button class="btn primary" id="ofAccept">🤝 Принять</button>
+        <button class="btn" id="ofCounter">🔁 Ответить обменом (выбрать свои карты)</button>
+        <button class="btn danger" id="ofDecline">🙈 Отказать</button>
+      </div>`);
+    $('ofAccept').onclick = () => { closeModal(); act({ t: 'tradeAccept', offerId: r.id }); };
+    $('ofCounter').onclick = () => {
+      pickCardsModal(you().hand, '🔁 Твои карты в ответ ' + r.fromName, (sel) =>
+        act({ t: 'tradeCounter', offerId: r.id, uids: sel }));
+    };
+    $('ofDecline').onclick = () => { closeModal(); act({ t: 'tradeDecline', offerId: r.id }); };
+  } else if (r.kind === 'counter') {
+    openModal(`
+      <h3>🔁 ${esc(r.fromName)} отвечает обменом</h3>
+      <p style="text-align:center;color:var(--muted);font-size:13px">Ты отдаёшь свои карты:</p>
+      <div class="reveal-wrap">${(r.baseCards || []).map((c) => cardHTML(c, 'reveal')).join('')}</div>
+      <p style="text-align:center;color:var(--muted);font-size:13px;margin-top:8px">…и получаешь взамен:</p>
+      <div class="reveal-wrap">${r.cards.map((c) => cardHTML(c, 'reveal')).join('')}</div>
+      <div class="m-actions">
+        <button class="btn primary" id="cfAccept">🤝 Принять обмен</button>
+        <button class="btn danger" id="cfDecline">🙈 Отказать</button>
+      </div>`);
+    $('cfAccept').onclick = () => { closeModal(); act({ t: 'tradeAccept', offerId: r.id }); };
+    $('cfDecline').onclick = () => { closeModal(); act({ t: 'tradeDecline', offerId: r.id }); };
+  }
+}
+
 function openMonsterPicker(mine) {
   openModal(`
     <h3>👹 Кого подкидываем?</h3>
@@ -555,6 +626,8 @@ function openPlayerMenu(p) {
     btns.push(['🗝️ Украсть шмотку (Вор)', () => act({ t: 'steal', targetId: p.id })]);
   if (y.race?.power === 'halfling' && !y.halflingUsed)
     btns.push(['🫳 Тянуть карту из руки (раса)', () => act({ t: 'stealFromHand', targetId: p.id })]);
+  if (y.hand.length) btns.push(['🎁 Подарить карты', () => pickCardsModal(y.hand, '🎁 Что дарим ' + p.name + '?', (sel) => act({ t: 'gift', targetId: p.id, uids: sel }))]);
+  if (y.hand.length) btns.push(['🤝 Предложить обмен', () => pickCardsModal(y.hand, '🤝 Твои карты в обмене с ' + p.name, (sel) => act({ t: 'tradeOffer', targetId: p.id, uids: sel }))]);
   if (!btns.length) btns.push([`ℹ️ ${p.name}: ур. ${p.level}, сила ${p.power}`, closeModal]);
   openModal(`
     <h3>${esc(p.name)}</h3>

@@ -36,6 +36,8 @@ class Game {
     this.log = [];
     this.chat = [];
     this.reveal = null;   // последняя вытянутая карта (для показа на экране)
+    this.offers = [];     // предложения обмена { id, fromId, targetId, uids, kind, baseUids, ts }
+    this.offerSeq = 0;
   }
 
   // ------------------------------------------------------------------ утилиты
@@ -649,6 +651,90 @@ class Game {
     this.discard(card);
   }
 
+  // ---------------------------------------------- обмен и дарение карт
+  tradeBlocked(p, t) {
+    if (this.phase === 'over') throw new Error('Игра окончена');
+    // классика: торговаться нельзя, если кто-то из пары участвует в бою
+    if (this.isFighterOrHelper(p) || this.isFighterOrHelper(t))
+      throw new Error('Во время боя торговаться и дарить нельзя');
+  }
+  checkHandCards(player, uids, label) {
+    if (!uids || !uids.length) throw new Error('Не выбрано ни одной карты');
+    for (const uid of uids) {
+      if (!player.hand.some((c) => c.uid === uid))
+        throw new Error(`${label}: карты нет в руке у ${player.name}`);
+    }
+  }
+  giftCards(p, targetId, uids) {
+    const t = this.find(targetId);
+    if (!t || t.id === p.id) throw new Error('Выбери получателя');
+    this.tradeBlocked(p, t);
+    this.checkHandCards(p, uids, 'Подарок');
+    const cards = uids.map((uid) => this.takeFromHand(p, uid));
+    t.hand.push(...cards);
+    this.say(`🎁 ${p.name} дарит ${t.name}: ${cards.map((c) => '«' + c.name + '»').join(', ')}.`);
+  }
+  tradeOffer(p, targetId, uids) {
+    const t = this.find(targetId);
+    if (!t || t.id === p.id) throw new Error('Выбери, с кем меняться');
+    this.tradeBlocked(p, t);
+    if (this.offers.some((o) => o.fromId === p.id))
+      throw new Error('У тебя уже висит предложение — дождись ответа');
+    this.checkHandCards(p, uids, 'Обмен');
+    this.offers.push({ id: 'of' + (++this.offerSeq), fromId: p.id, targetId,
+      uids: [...uids], kind: 'offer', baseUids: null, ts: Date.now() });
+    this.say(`🤝 ${p.name} предлагает ${t.name} обмен (${uids.length} карт${uids.length > 1 ? 'ы' : ''}).`);
+  }
+  tradeCounter(p, offerId, uids) {
+    const offer = this.offers.find((o) => o.id === offerId);
+    if (!offer || offer.targetId !== p.id) throw new Error('Предложение не найдено');
+    if (offer.kind !== 'offer') throw new Error('На встречное отвечают только да/нет');
+    const from = this.find(offer.fromId);
+    this.tradeBlocked(p, from);
+    this.checkHandCards(p, uids, 'Встречный обмен');
+    this.offers = this.offers.filter((o) => o.id !== offerId);
+    this.offers.push({ id: 'of' + (++this.offerSeq), fromId: p.id, targetId: offer.fromId,
+      uids: [...uids], kind: 'counter', baseUids: [...offer.uids], ts: Date.now() });
+    this.say(`🔁 ${p.name} отвечает на предложение ${from.name} встречным обменом.`);
+  }
+  cleanOffersAround(aId, bId) {
+    this.offers = this.offers.filter((o) => o.fromId !== aId && o.fromId !== bId &&
+      o.targetId !== aId && o.targetId !== bId);
+  }
+  tradeAccept(p, offerId) {
+    const offer = this.offers.find((o) => o.id === offerId);
+    if (!offer || offer.targetId !== p.id) throw new Error('Предложение не найдено');
+    const from = this.find(offer.fromId);
+    if (!from || !from.connected) {
+      this.cleanOffersAround(p.id, offer.fromId);
+      throw new Error('Игрок отключился — предложение отменено');
+    }
+    try {
+      this.checkHandCards(from, offer.uids, 'Обмен');
+      if (offer.kind === 'counter') this.checkHandCards(p, offer.baseUids, 'Обмен');
+    } catch (e) {
+      this.cleanOffersAround(p.id, offer.fromId);
+      throw new Error('Карты уже ушли из руки — предложение отменено');
+    }
+    const give = offer.uids.map((uid) => this.takeFromHand(from, uid));
+    p.hand.push(...give);
+    if (offer.kind === 'counter') {
+      const back = offer.baseUids.map((uid) => this.takeFromHand(p, uid));
+      from.hand.push(...back);
+      this.say(`🤝 ${p.name} и ${from.name} совершили обмен (${offer.uids.length} ↔ ${offer.baseUids.length}).`);
+    } else {
+      this.say(`🤝 ${p.name} принял предложение ${from.name} (${offer.uids.length} карт).`);
+    }
+    this.cleanOffersAround(p.id, offer.fromId);
+  }
+  tradeDecline(p, offerId) {
+    const offer = this.offers.find((o) => o.id === offerId);
+    if (!offer || offer.targetId !== p.id) throw new Error('Предложение не найдено');
+    const from = this.find(offer.fromId);
+    this.offers = this.offers.filter((o) => o.id !== offerId);
+    this.say(`${p.name} отклоняет предложение ${from ? from.name : '???'}.`);
+  }
+
   // -------------------------------------------------------------- конец хода
   endTurn(p) {
     if (this.turnPlayer()?.id !== p.id) throw new Error('Не твой ход');
@@ -694,6 +780,11 @@ class Game {
       case 'heal': return this.clericHeal(p);
       case 'levelUp': return this.playLevelUp(p, msg.uid);
       case 'endTurn': return this.endTurn(p);
+      case 'gift': return this.giftCards(p, msg.targetId, msg.uids || []);
+      case 'tradeOffer': return this.tradeOffer(p, msg.targetId, msg.uids || []);
+      case 'tradeCounter': return this.tradeCounter(p, msg.offerId, msg.uids || []);
+      case 'tradeAccept': return this.tradeAccept(p, msg.offerId);
+      case 'tradeDecline': return this.tradeDecline(p, msg.offerId);
       case 'chat': return this.chatMsg(p.name, msg.text);
       default: throw new Error('Неизвестное действие');
     }
@@ -722,6 +813,7 @@ class Game {
     this.combat = null;
     this.winner = null;
     this.reveal = null;
+    this.offers = [];
     this.phase = 'lobby';
     this.say('Новая игра! Все вернулись в лобби.');
   }
@@ -796,6 +888,26 @@ class Game {
         wizardEscaped: this.combat.wizardEscaped,
         classModNote: this.classModNote(),
       } : null,
+      offers: this.offers
+        .filter((o) => o.fromId === playerId || o.targetId === playerId)
+        .map((o) => {
+          const from = this.find(o.fromId), target = this.find(o.targetId);
+          return {
+            id: o.id, kind: o.kind,
+            fromId: o.fromId, fromName: from ? from.name : '???',
+            targetId: o.targetId, targetName: target ? target.name : '???',
+            cards: o.uids.map((uid) => {
+              const c = from && from.hand.find((c) => c.uid === uid);
+              return this.cardPublic(c);
+            }).filter(Boolean),
+            baseCards: o.baseUids ? o.baseUids.map((uid) => {
+              const t = this.find(o.targetId);
+              const c = t && t.hand.find((c) => c.uid === uid);
+              return this.cardPublic(c);
+            }).filter(Boolean) : null,
+            ts: o.ts,
+          };
+        }),
       reveal: this.reveal ? {
         kind: this.reveal.kind, byId: this.reveal.byId, byName: this.reveal.byName,
         secret: this.reveal.secret, ts: this.reveal.ts,

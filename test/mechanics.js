@@ -384,5 +384,72 @@ console.log('=== 8. Помощь, эльф, пересборка колоды ==
 }
 
 console.log('\n─────────────────────────────');
+console.log('=== 9. Обмен и дарение ===');
+{
+  const g = new Game('T9');
+  g.addPlayer('p1', 'Аня'); g.addPlayer('p2', 'Боря'); g.addPlayer('p3', 'Вика'); g.start();
+  const [a, b, v] = [g.find('p1'), g.find('p2'), g.find('p3')];
+  for (const p of [a, b, v]) while (p.hand.length > 5) g.discard(p.hand.pop());
+  g.phase = 'charity';
+  const card = (name) => ({ type: 'item', name, bonus: 1, slot: 'hands', hands: 1, big: false, price: 100, runBonus: 0, uid: 'g' + name });
+
+  // подарок
+  const aHand0 = a.hand.length, bHand0 = b.hand.length;
+  a.hand.push(card('Подарочек'));
+  const giftUid = a.hand[a.hand.length - 1].uid;
+  g.action('p1', { t: 'gift', targetId: 'p2', uids: [giftUid] });
+  ok(b.hand.length === bHand0 + 1 && a.hand.length === aHand0, 'подарок перешёл к Боре');
+
+  // обмен: Аня предлагает -> Боря отвечает встречным -> Аня принимает
+  a.hand.push(card('Мой клад'), card('Мой клад 2'));
+  b.hand.push(card('Его карта'));
+  const offerUids = a.hand.slice(-2).map((c) => c.uid);
+  g.action('p1', { t: 'tradeOffer', targetId: 'p2', uids: offerUids });
+  ok(g.offers.length === 1, 'предложение висит');
+  const offerId = g.offers[0].id;
+  const bUids = [b.hand[b.hand.length - 1].uid];
+  g.action('p2', { t: 'tradeCounter', offerId, uids: bUids });
+  ok(g.offers.length === 1 && g.offers[0].kind === 'counter', 'встречное предложение создано');
+  g.action('p1', { t: 'tradeAccept', offerId: g.offers[0].id });
+  ok(b.hand.some((c) => c.name === 'Мой клад') && a.hand.some((c) => c.name === 'Его карта'),
+    'обмен совершен: карты переехали');
+  ok(g.offers.length === 0, 'предложения очищены после обмена');
+
+  // отклонение
+  a.hand.push(card('Щедрость'));
+  g.action('p1', { t: 'tradeOffer', targetId: 'p3', uids: [a.hand[a.hand.length - 1].uid] });
+  g.action('p3', { t: 'tradeDecline', offerId: g.offers[0].id });
+  ok(a.hand.some((c) => c.name === 'Щедрость') && g.offers.length === 0, 'отказ возвращает всё на место');
+
+  // простое принятие = забираешь карты себе
+  a.hand.push(card('На TAKE'));
+  g.action('p1', { t: 'tradeOffer', targetId: 'p2', uids: [a.hand[a.hand.length - 1].uid] });
+  g.action('p2', { t: 'tradeAccept', offerId: g.offers[0].id });
+  ok(b.hand.some((c) => c.name === 'На TAKE'), 'простое принятие забирает карты себе');
+
+  // второй активный оффер от того же игрока запрещён
+  a.hand.push(card('Дубль'));
+  g.action('p1', { t: 'tradeOffer', targetId: 'p3', uids: [a.hand[a.hand.length - 1].uid] });
+  expectThrow(() => g.action('p1', { t: 'tradeOffer', targetId: 'p2', uids: [a.hand[a.hand.length - 2].uid] }),
+    'второе предложение от того же игрока запрещено', 'уже висит');
+
+  // во время боя торговаться нельзя
+  g.combat = { fighterId: 'p1', monsters: [monster('Тролль', 9)], monsterBonus: 0, monsterDebuff: 0,
+    sideBonus: 0, helperId: null, askId: null, wizardEscaped: false };
+  g.phase = 'combat';
+  b.hand.push(card('Боевой торг'));
+  expectThrow(() => g.action('p2', { t: 'tradeOffer', targetId: 'p1', uids: [b.hand[b.hand.length - 1].uid] }),
+    'торговля с участником боя запрещена', 'Во время боя');
+  g.combat = null; g.phase = 'charity';
+  g.action('p3', { t: 'tradeDecline', offerId: g.offers[0].id }); // гасим висящий «Дубль»
+
+  // карта ушла из руки — предложение отменяется при принятии
+  a.hand.push(card('Исчезнувшая'));
+  g.action('p1', { t: 'tradeOffer', targetId: 'p3', uids: [a.hand[a.hand.length - 1].uid] });
+  g.discard(a.hand.pop());
+  expectThrow(() => g.action('p3', { t: 'tradeAccept', offerId: g.offers[0].id }),
+    'уведшие карты отменяют предложение', 'отменено');
+}
+
 console.log(`ИТОГО: ✅ ${pass}  ❌ ${fail}`);
 process.exit(fail ? 1 : 0);
