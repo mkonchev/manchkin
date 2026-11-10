@@ -814,7 +814,11 @@
     "hands": 1,
     "big": false,
     "price": 200,
-    "runBonus": 0
+    "runBonus": 0,
+    "synergy": {
+      "power": "levelHead2",
+      "bonus": 2
+    }
   },
   {
     "deck": "treasure",
@@ -892,7 +896,11 @@
     "hands": 1,
     "big": false,
     "price": 300,
-    "runBonus": 2
+    "runBonus": 2,
+    "synergy": {
+      "power": "run2",
+      "bonus": 2
+    }
   },
   {
     "deck": "treasure",
@@ -905,7 +913,11 @@
     "hands": 1,
     "big": false,
     "price": 300,
-    "runBonus": 3
+    "runBonus": 3,
+    "synergy": {
+      "power": "multiTransport",
+      "bonus": 2
+    }
   },
   {
     "deck": "treasure",
@@ -1202,7 +1214,11 @@
     "hands": 1,
     "big": false,
     "price": 300,
-    "runBonus": 3
+    "runBonus": 3,
+    "synergy": {
+      "power": "multiTransport",
+      "bonus": 2
+    }
   },
   {
     "deck": "treasure",

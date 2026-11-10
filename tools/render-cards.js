@@ -28,6 +28,7 @@ function bits(c) {
     if (c.hands === 2) b.push('занимает две руки');
     if (c.big) b.push('🧱 крупное');
     if (c.runBonus) b.push(`👟 +${c.runBonus} к побегу`);
+    if (c.synergy) b.push(`🌟 для своего класса: +${c.synergy.bonus}`);
     if (c.price) b.push(`💰 ${c.price} золота`);
   }
   if (c.type === 'oneShot') b.push(`+${c.bonus} в бою, однократно`);

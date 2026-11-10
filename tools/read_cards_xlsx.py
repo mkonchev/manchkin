@@ -139,11 +139,19 @@ for rn in range(5, ws.max_row + 1):
     elif ctype == "item":
         if bonus is None: row_err.append("у шмота пустая «Сила/Бонус»")
         if not slot: row_err.append("у шмота нет слота")
+        syn_label = val(rn, "Синергия с классом")
+        synergy = None
+        if syn_label:
+            syn_power = POWER_BACK.get(str(syn_label).strip())
+            syn_bonus = num(val(rn, "Бонус хозяину"))
+            if not syn_power: row_err.append(f"неизвестный класс синергии «{syn_label}» (см. Справку)")
+            elif syn_bonus is None: row_err.append("есть «Синергия с классом», но пустой «Бонус хозяину»")
+            else: synergy = {"power": syn_power, "bonus": syn_bonus}
         runb = num(val(rn, "Бонус к побегу")) if H("Бонус к побегу") else None
         price = num(val(rn, "Цена (золота)")) if H("Цена (золота)") else None
         card.update(bonus=bonus if bonus is not None else 1, slot=slot or "hands",
                     hands=2 if yes("Две руки") else 1, big=yes("Крупное"),
-                    runBonus=runb or 0, price=price or 0)
+                    runBonus=runb or 0, price=price or 0, synergy=synergy)
     elif ctype == "oneShot":
         if bonus is None: row_err.append("у разовой карты пустая «Сила/Бонус»")
         card.update(bonus=bonus if bonus is not None else 3)

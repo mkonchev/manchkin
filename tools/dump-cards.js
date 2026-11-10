@@ -18,6 +18,7 @@ function fields(c) {
   if (c.type === 'item') {
     o.bonus = c.bonus; o.slot = c.slot; o.hands = c.hands || 1;
     o.big = !!c.big; o.price = c.price || 0; o.runBonus = c.runBonus || 0;
+    o.synergy = c.synergy || null;
   }
   if (c.type === 'oneShot') { o.bonus = c.bonus; }
   if (c.type === 'levelUp') { o.arg = c.arg; }

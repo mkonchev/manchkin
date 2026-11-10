@@ -32,7 +32,7 @@ for (const r of data) {
   if (r.type === 'enhancer') Object.assign(card, { bonus: r.bonus });
   if (r.type === 'item') Object.assign(card, {
     bonus: r.bonus, slot: r.slot, hands: r.hands || 1, big: !!r.big,
-    price: r.price || 0, runBonus: r.runBonus || 0,
+    price: r.price || 0, runBonus: r.runBonus || 0, synergy: r.synergy || null,
   });
   if (r.type === 'oneShot') Object.assign(card, { bonus: r.bonus });
   if (r.type === 'levelUp') Object.assign(card, { arg: r.arg });

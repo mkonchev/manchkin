@@ -70,6 +70,8 @@ const TYPE_EMOJI = { monster: '👹', curse: '💀', klass: '🎭', oneShot: '�
 const KLASS_EMOJI = { run2: '🏃', multiTransport: '🚗', thief: '🗝️', levelHead2: '✨',
   multiFeet: '👟', multiBig: '🧱', escapeOnce: '🌀',
   warrior: '⚔️', wizard: '🧙', cleric: '✨' };
+const KLASS_NAME = { run2: 'Серёге', multiTransport: 'Максу', thief: 'Данилу',
+  levelHead2: 'Славе', multiFeet: 'Кузяну', multiBig: 'Валере', escapeOnce: 'Тимуру' };
 
 function cardEmoji(c) {
   if (c.type === 'item') return SLOT_EMOJI[c.slot] || '🧳';
@@ -77,7 +79,7 @@ function cardEmoji(c) {
 }
 function bonusLabel(c) {
   if (c.type === 'monster') return `${c.level} 👹`;
-  if (c.type === 'item') return `+${c.bonus}`;
+  if (c.type === 'item') return `+${c.bonusEff ?? c.bonus}`;
   if (c.type === 'oneShot' || c.type === 'enhancer') return `+${c.bonus}`;
   if (c.type === 'levelUp') return `+${c.arg}⭐`;
   return '';
@@ -93,6 +95,7 @@ function cardHTML(c, extraClass = '') {
   if (c.type === 'item' && c.hands === 2) bits.push('✋✋ две руки');
   if (c.runBonus) bits.push(`👟 +${c.runBonus} к побегу`);
   if (c.type === 'item' && c.price) bits.push(`💰 ${c.price}`);
+  if (c.synergy) bits.push(`🌟 ${KLASS_NAME[c.synergy.power] || c.synergy.power}: +${c.synergy.bonus}`);
   if (c.type === 'monster' && c.levels) bits.push(`⭐ ${c.levels} · 💎 ${c.treasures}`);
   return `<div class="card t-${c.type} ${extraClass}" data-uid="${c.uid}">
     <div class="c-bonus">${bonusLabel(c)}</div>

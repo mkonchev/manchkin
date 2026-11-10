@@ -122,11 +122,17 @@ class Game {
     return p.hand.splice(i, 1)[0];
   }
 
+  // эффективный бонус предмета: базовый + синергия, если надел «свой» класс
+  effBonus(p, c) {
+    let b = c.bonus;
+    if (c.synergy && p.klass && p.klass.power === c.synergy.power) b += c.synergy.bonus;
+    return b;
+  }
   equipBonus(p) {
     let b = 0;
-    if (p.equip.body) b += p.equip.body.bonus;
+    if (p.equip.body) b += this.effBonus(p, p.equip.body);
     for (const s of ['head', 'feet', 'transport', 'hands'])
-      b += p.equip[s].reduce((a, c) => a + c.bonus, 0);
+      b += p.equip[s].reduce((a, c) => a + this.effBonus(p, c), 0);
     return b;
   }
   runBonus(p) {
@@ -718,7 +724,12 @@ class Game {
       runBonus: c.runBonus, price: c.price, arg: c.arg,
       levels: c.levels, treasures: c.treasures, hands: c.hands,
       power: c.power, classMod: c.classMod || null, img: c.img || null,
+      synergy: c.synergy || null,
     };
+  }
+  cardPubEff(p, c) {
+    if (!c) return null;
+    return { ...this.cardPublic(c), bonusEff: this.effBonus(p, c) };
   }
   playerPublic(p, withHand) {
     const equipped = [
@@ -737,13 +748,13 @@ class Game {
       stealUsed: p.stealUsed, healUsed: p.healUsed, escapeUsed: p.escapeUsed,
       connected: p.connected,
       equip: {
-        head: p.equip.head.map((c) => this.cardPublic(c)),
-        body: this.cardPublic(p.equip.body),
-        feet: p.equip.feet.map((c) => this.cardPublic(c)),
-        transport: p.equip.transport.map((c) => this.cardPublic(c)),
-        hands: p.equip.hands.map((c) => this.cardPublic(c)),
+        head: p.equip.head.map((c) => this.cardPubEff(p, c)),
+        body: this.cardPubEff(p, p.equip.body),
+        feet: p.equip.feet.map((c) => this.cardPubEff(p, c)),
+        transport: p.equip.transport.map((c) => this.cardPubEff(p, c)),
+        hands: p.equip.hands.map((c) => this.cardPubEff(p, c)),
       },
-      equippedCards: equipped.map((c) => this.cardPublic(c)),
+      equippedCards: equipped.map((c) => this.cardPubEff(p, c)),
       hand: withHand ? p.hand.map((c) => this.cardPublic(c)) : undefined,
     };
   }
