@@ -307,11 +307,11 @@ class Game {
       this.say(`${p.name} открыл дверь: проклятие «${card.name}».`);
       this.applyCurse(p, card);
       this.discard(card);
-      this.phase = 'charity';
+      this.phase = 'trouble';
     } else {
       p.hand.push(card);
       this.say(`${p.name} открывает дверь — там «${card.name}». Забирает в руку.`);
-      this.phase = 'charity';
+      this.phase = 'trouble';
     }
   }
 
@@ -735,6 +735,31 @@ class Game {
     this.say(`${p.name} отклоняет предложение ${from ? from.name : '???'}.`);
   }
 
+  // ---------------------------------------- поиск приключений (Look For Trouble)
+  inTrouble(p) {
+    if (this.phase !== 'trouble' || this.turnPlayer()?.id !== p.id)
+      throw new Error('Сейчас не фаза поиска приключений');
+  }
+  lootRoom(p) {
+    this.inTrouble(p);
+    const card = this.draw('door', 1)[0];
+    if (!card) throw new Error('В колоде кончились карты');
+    p.hand.push(card);
+    this.say(`${p.name} обыскивает комнату и забирает карту в руку.`);
+    this.phase = 'charity';
+  }
+  lookForTrouble(p, uid) {
+    this.inTrouble(p);
+    const card = this.takeFromHand(p, uid);
+    if (card.type !== 'monster') { p.hand.push(card); throw new Error('Это не монстр'); }
+    this.say(`${p.name} ищет неприятности и вызывает ${card.name} (сила ${card.level})!`);
+    this.startCombat(p, card);
+  }
+  skipTrouble(p) {
+    this.inTrouble(p);
+    this.phase = 'charity';
+  }
+
   // -------------------------------------------------------------- конец хода
   endTurn(p) {
     if (this.turnPlayer()?.id !== p.id) throw new Error('Не твой ход');
@@ -780,6 +805,9 @@ class Game {
       case 'heal': return this.clericHeal(p);
       case 'levelUp': return this.playLevelUp(p, msg.uid);
       case 'endTurn': return this.endTurn(p);
+      case 'lootRoom': return this.lootRoom(p);
+      case 'lookForTrouble': return this.lookForTrouble(p, msg.uid);
+      case 'skipTrouble': return this.skipTrouble(p);
       case 'gift': return this.giftCards(p, msg.targetId, msg.uids || []);
       case 'tradeOffer': return this.tradeOffer(p, msg.targetId, msg.uids || []);
       case 'tradeCounter': return this.tradeCounter(p, msg.offerId, msg.uids || []);

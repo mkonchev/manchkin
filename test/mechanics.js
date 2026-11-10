@@ -56,14 +56,14 @@ console.log('=== 1. Ход: дверь ===');
   ok(b.level === Math.max(1, bLvl - 1), 'дверь: проклятие применяется сразу');
   ok(g.reveal && g.reveal.kind === 'door' && !g.reveal.secret &&
      g.reveal.cards[0].name === 'Сглаз', 'дверь: вытянутая карта показывается всем');
-  ok(g.phase === 'charity', 'после проклятия — конец хода');
+  ok(g.phase === 'trouble', 'после проклятия — поиск приключений');
 
   // предмет из двери — в руку
   g.turnIdx = 0; g.phase = 'kick';
   g.doorDeck.push(item('Мусор из двери', 1, 'hands'));
   const h0 = a.hand.length;
   g.action('p1', { t: 'kick' });
-  ok(a.hand.length === h0 + 1 && g.phase === 'charity', 'дверь: хабар идёт в руку');
+  ok(a.hand.length === h0 + 1 && g.phase === 'trouble', 'дверь: хабар в руку, фаза поиска приключений');
 }
 
 console.log('=== 2. Подкидывание монстра из руки ===');
@@ -449,6 +449,48 @@ console.log('=== 9. Обмен и дарение ===');
   g.discard(a.hand.pop());
   expectThrow(() => g.action('p3', { t: 'tradeAccept', offerId: g.offers[0].id }),
     'уведшие карты отменяют предложение', 'отменено');
+}
+
+console.log('=== 10. Поиск приключений (Look For Trouble) ===');
+{
+  const g = new Game('T10');
+  g.addPlayer('p1', 'Аня'); g.addPlayer('p2', 'Боря'); g.addPlayer('p3', 'Вика'); g.start();
+  const [a, b, v] = [g.find('p1'), g.find('p2'), g.find('p3')];
+  for (const p of [a, b, v]) while (p.hand.length > 5) g.discard(p.hand.pop());
+  g.turnIdx = 0; g.phase = 'kick';
+  g.doorDeck.push({ type: 'curse', name: 'Сглаз', effect: 'loseLevel', arg: 1, text: '', uid: 'cu1' });
+  g.action('p1', { t: 'kick' });
+  ok(g.phase === 'trouble', 'после проклятия можно искать приключения');
+
+  // обыск комнаты
+  const h0 = a.hand.length, doors0 = g.doorDeck.length;
+  g.action('p1', { t: 'lootRoom' });
+  ok(a.hand.length === h0 + 1 && g.doorDeck.length === doors0 - 1 && g.phase === 'charity',
+    'обыск комнаты: тёмная карта Дверей в руку');
+  g.phase = 'trouble';
+
+  // искать неприятности: монстр из руки
+  a.hand.push(monster('Вызвать на драку', 2, { levels: 1, treasures: 1, bad: { t: 'none' } }));
+  const troubleUid = a.hand[a.hand.length - 1].uid;
+  g.action('p1', { t: 'lookForTrouble', uid: troubleUid });
+  ok(g.phase === 'combat' && g.combat.fighterId === 'p1' &&
+     g.combat.monsters[0].name === 'Вызвать на драку', 'искать неприятности: бой начался');
+  // не-участник может подкинуть монстра в этот бой
+  v.hand.push(monster('Подкинутый в неприятность', 3));
+  g.action('p3', { t: 'wanderMonster', uid: v.hand[v.hand.length - 1].uid });
+  ok(g.combat.monsters.length === 2, 'чужой монстр влетел в драку по собственному желанию');
+  a.hand.push({ type: 'oneShot', name: 'Бах', bonus: 20, uid: 'os9' });
+  g.action('p1', { t: 'playOneShot', uid: 'os9' });
+  g.action('p1', { t: 'resolve' });
+  ok(g.phase === 'charity' && a.hand.length > 0, 'победа в неприятностях приносит награду');
+
+  // пропустить фазу
+  g.turnIdx = 1; g.phase = 'kick';
+  g.doorDeck.push(item('Хабар Бори', 1, 'hands'));
+  g.action('p2', { t: 'kick' });
+  ok(g.phase === 'trouble', 'у Бори тоже фаза поиска');
+  g.action('p2', { t: 'skipTrouble' });
+  ok(g.phase === 'charity', 'пропуск фазы ведёт к концу хода');
 }
 
 console.log(`ИТОГО: ✅ ${pass}  ❌ ${fail}`);

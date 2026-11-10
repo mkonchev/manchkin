@@ -193,6 +193,7 @@ function phaseText() {
   switch (S.phase) {
     case 'lobby': return 'Лобби — жди начала';
     case 'kick': return `🚪 ${name}: открывает дверь`;
+    case 'trouble': return `🔍 ${name}: ищет приключения`;
     case 'combat': return `⚔ БОЙ: ${name} против монстра!`;
     case 'run': return `🏃 ${name} убегает!`;
     case 'charity': return `🎒 ${name} заканчивает ход`;
@@ -308,6 +309,29 @@ function renderTurnActions() {
     b.textContent = '🚪 Открыть дверь';
     b.onclick = () => act({ t: 'kick' });
     box.appendChild(b);
+  }
+  if (myTurn() && S.phase === 'trouble') {
+    const y = you();
+    const loot = document.createElement('button');
+    loot.className = 'btn primary big';
+    loot.textContent = '🎲 Обыскать комнату';
+    loot.title = 'Добрать одну тёмную карту Дверей в руку';
+    loot.onclick = () => act({ t: 'lootRoom' });
+    box.appendChild(loot);
+    const mine = y.hand.filter((x) => x.type === 'monster');
+    if (mine.length) {
+      const trouble = document.createElement('button');
+      trouble.className = 'btn danger big';
+      trouble.textContent = `👹 Искать неприятности (${mine.length})`;
+      trouble.title = 'Сыграть монстра из руки и подраться с ним за награду';
+      trouble.onclick = () => openMonsterPicker(mine, (uid) => ({ t: 'lookForTrouble', uid }));
+      box.appendChild(trouble);
+    }
+    const skip = document.createElement('button');
+    skip.className = 'btn big';
+    skip.textContent = '➡️ Достаточно';
+    skip.onclick = () => act({ t: 'skipTrouble' });
+    box.appendChild(skip);
   }
   if (S.phase === 'combat' && iAmFighter) {
     const b = document.createElement('button');
@@ -606,14 +630,15 @@ function renderOffers() {
   }
 }
 
-function openMonsterPicker(mine) {
+function openMonsterPicker(mine, makeAction) {
+  const act_ = makeAction || ((uid) => ({ t: 'wanderMonster', uid }));
   openModal(`
     <h3>👹 Кого подкидываем?</h3>
     <div class="player-pick">
       ${mine.map((c, i) => `<button class="btn" data-i="${i}"><span>${esc(c.name)}</span><span>сила ${c.level}</span></button>`).join('')}
     </div>`);
   $('modalBox').querySelectorAll('[data-i]').forEach((el) => {
-    el.onclick = () => { closeModal(); act({ t: 'wanderMonster', uid: mine[+el.dataset.i].uid }); };
+    el.onclick = () => { closeModal(); act(act_(mine[+el.dataset.i].uid)); };
   });
 }
 

@@ -76,6 +76,17 @@ while (g.phase !== 'over' && steps < MAX) {
         }
         break;
       }
+      case 'trouble': {
+        const m = cur.hand.find((c) => c.type === 'monster');
+        if (m && rnd() < 0.5) {
+          g.action(cur.id, { t: 'lookForTrouble', uid: m.uid });
+        } else if (rnd() < 0.5) {
+          g.action(cur.id, { t: 'lootRoom' });
+        } else {
+          g.action(cur.id, { t: 'skipTrouble' });
+        }
+        break;
+      }
       case 'charity': {
         const thief = g.players.find((p) => p.klass?.power === 'thief' && !p.stealUsed);
         if (thief && rnd() < 0.25) {
