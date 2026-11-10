@@ -414,6 +414,19 @@ aside, #table {
   border-color: #a04a28;
 }
 .card.t-enhancer .c-name { color: #ffc4a6; }
+/* подложка под текст: не сливается с фотографией */
+.card:has(.c-img) .c-name,
+.card:has(.c-img) .c-text {
+  background: rgba(10, 8, 18, .58);
+  border-radius: 5px;
+  padding: 2px 5px;
+  text-shadow: 0 1px 2px rgba(0,0,0,.7);
+}
+.card:has(.c-img) .c-bits {
+  background: rgba(10, 8, 18, .58);
+  border-radius: 5px;
+  padding: 2px 5px;
+}
 .card.selected { outline: 3px solid var(--gold); box-shadow: 0 0 18px rgba(255,200,87,.4); }
 
 /* ------------------------------------------------------------------ лог */
