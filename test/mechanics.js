@@ -507,11 +507,13 @@ console.log('=== 11. Торг за помощь и кап 9-го с помощн
   const [a, b] = [g.find('p1'), g.find('p2')];
   for (const p of [a, b]) while (p.hand.length > 5) g.discard(p.hand.pop());
   g.turnIdx = 0; g.phase = 'kick';
-  g.doorDeck.push(monster('Слабый', 1));
+  g.doorDeck.push(monster('Слабый', 1, { treasures: 2 }));
   g.action('p1', { t: 'kick' });
 
   // Аня зовёт, Боря заламывает 2 сокровища, Аня соглашается
   g.action('p1', { t: 'askHelp', targetId: 'p2' });
+  expectThrow(() => g.action('p2', { t: 'proposeHelpFee', amount: 9 }),
+    'ставка выше сокровищ боя запрещена', 'столько всего сокровищ');
   g.action('p2', { t: 'proposeHelpFee', amount: 2 });
   ok(g.combat.feeProposal && g.combat.feeProposal.amount === 2 && g.combat.helperId === null,
     'торг висит на решении бойца');
@@ -527,7 +529,7 @@ console.log('=== 11. Торг за помощь и кап 9-го с помощн
 
   // отказ от торга -> обычная помощь
   g.turnIdx = 1; g.phase = 'kick';
-  g.doorDeck.push(monster('Опять слабый', 1));
+  g.doorDeck.push(monster('Опять слабый', 1, { treasures: 5 }));
   g.action('p2', { t: 'kick' });
   g.action('p2', { t: 'askHelp', targetId: 'p1' });
   g.action('p1', { t: 'proposeHelpFee', amount: 5 });

@@ -549,15 +549,35 @@ function renderHelpModal() {
     $('helpYes').onclick = () => { act({ t: 'respondHelp', accept: true }); closeModal(); };
     $('helpNo').onclick = () => { act({ t: 'respondHelp', accept: false }); closeModal(); };
     $('helpFee').onclick = () => {
-      const amounts = [1, 2, 3, 4, 5];
+      const max = c.monsters.reduce((a, m) => a + (m.treasures || 0), 0);
       openModal(`
         <h3>💰 Сколько хочешь за помощь?</h3>
-        <div class="player-pick">
-          ${amounts.map((n, i) => `<button class="btn" data-i="${i}"><span>${n} сокровищ(а)</span><span>💎×${n}</span></button>`).join('')}
+        <p style="text-align:center;color:var(--muted);font-size:13px">
+          Максимум: <b style="color:var(--gold)">${max}</b> — столько всего сокровищ за монстров в этом бою
+        </p>
+        <div style="display:flex;gap:10px;justify-content:center;align-items:center">
+          <input id="feeAmount" type="number" min="1" max="${max}" value="1"
+                 style="width:120px;text-align:center;font-size:22px">
+        </div>
+        <div class="m-actions">
+          <button class="btn primary" id="feeSend">💰 Предложить</button>
+          <button class="btn ghost" id="feeBack">← Назад</button>
         </div>`, true);
-      $('modalBox').querySelectorAll('[data-i]').forEach((el) => {
-        el.onclick = () => { act({ t: 'proposeHelpFee', amount: amounts[+el.dataset.i] }); closeModal(); };
-      });
+      const inp = $('feeAmount'), send = $('feeSend');
+      const refresh = () => {
+        const v = parseInt(inp.value, 10);
+        send.disabled = !(v >= 1 && v <= max);
+        send.textContent = v >= 1 && v <= max ? `💰 Предложить ${v}` : '💰 Предложить';
+      };
+      inp.oninput = refresh;
+      inp.onkeydown = (e) => { if (e.key === 'Enter' && !send.disabled) send.click(); };
+      refresh();
+      inp.focus();
+      send.onclick = () => {
+        const v = parseInt(inp.value, 10);
+        if (v >= 1 && v <= max) { act({ t: 'proposeHelpFee', amount: v }); closeModal(); }
+      };
+      $('feeBack').onclick = () => { lastAskHandled = null; render(); };
     };
   }
 }
@@ -565,6 +585,7 @@ function renderHelpModal() {
 // ------------------------------------------------------------------- модалки
 function openModal(html, locked = false) {
   $('modalBox').innerHTML = html;
+  $('modalBox').onclick = null;              // старые «клик = закрыть» не должны переживать окно
   $('modal').classList.remove('hidden');
   $('modal').onclick = locked ? null : (e) => { if (e.target === $('modal')) closeModal(); };
 }

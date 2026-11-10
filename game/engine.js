@@ -453,7 +453,9 @@ class Game {
       throw new Error('Тебя сейчас не зовут на помощь');
     if (this.combat.helperId) throw new Error('Помощник уже есть');
     const n = Math.floor(amount);
-    if (!Number.isFinite(n) || n < 1 || n > 10) throw new Error('Ставка от 1 до 10 сокровищ');
+    const maxTre = this.combat.monsters.reduce((a, m) => a + (m.treasures || 0), 0);
+    if (!Number.isFinite(n) || n < 1 || n > maxTre)
+      throw new Error(`Ставка от 1 до ${maxTre} — столько всего сокровищ за монстров в бою`);
     this.combat.feeProposal = { amount: n, helperId: p.id };
     this.combat.askId = null;
     this.say(`💰 ${p.name} торгуется: поможет за ${n} сокровищ.`);
