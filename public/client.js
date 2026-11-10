@@ -247,22 +247,12 @@ function renderCombat() {
   $('sidePower').textContent = c.sidePower;
   const fighter = S.players.find((p) => p.id === c.fighterId);
   const helper = S.players.find((p) => p.id === c.helperId);
-  const acts = $('combatActions');
-  acts.innerHTML = '';
-  const yh = you();
-  if (S.phase === 'combat' && c.fighterId !== me && c.helperId !== me && yh) {
-    const mine = yh.hand.filter((x) => x.type === 'monster');
-    if (mine.length) {
-      const wb = document.createElement('button');
-      wb.className = 'btn danger';
-      wb.textContent = `👹 Подкинуть монстра (${mine.length})`;
-      wb.onclick = () => openMonsterPicker(mine);
-      acts.appendChild(wb);
-    }
-  }
   $('monsterCards').innerHTML = c.monsters.map((m) => cardHTML(m)).join('') +
     (c.monsterBonus ? `<div class="side-label">усиления: ${c.monsterBonus > 0 ? '+' : ''}${c.monsterBonus}</div>` : '') +
     (c.classModNote ? `<div class="side-label" style="color:${c.classModNote.active ? 'var(--red)' : 'var(--muted)'}">против класса: ${c.classModNote.bonus > 0 ? '+' : ''}${c.classModNote.bonus}${c.classModNote.active ? ' — АКТИВЕН!' : ''}</div>` : '');
+  $('monsterCards').querySelectorAll('.card').forEach((el) => {
+    el.onclick = () => openCombatPreview(el.dataset.uid);
+  });
   $('sideCards').innerHTML =
     `<div class="side-label">${esc(fighter?.name || '?')}${helper ? ` + ${esc(helper.name)}${c.helperFee ? ` 💰за ${c.helperFee} 💎` : ''}` : ''}</div>` +
     (c.sideBonus ? `<div class="side-label">разовые карты: +${c.sideBonus}</div>` : '');
@@ -347,6 +337,17 @@ function renderTurnActions() {
     skip.textContent = '➡️ Достаточно';
     skip.onclick = () => act({ t: 'skipTrouble' });
     box.appendChild(skip);
+  }
+  if (S.combat && (S.phase === 'combat' || S.phase === 'run') && !iAmFighter && !iAmHelper && y) {
+    const mine = y.hand.filter((x) => x.type === 'monster');
+    if (mine.length) {
+      const wb = document.createElement('button');
+      wb.className = 'btn danger big';
+      wb.textContent = `👹 Подкинуть монстра (${mine.length})`;
+      wb.title = 'Бросить монстра из руки в текущий бой';
+      wb.onclick = () => openMonsterPicker(mine);
+      box.appendChild(wb);
+    }
   }
   if (S.phase === 'combat' && iAmFighter) {
     const b = document.createElement('button');
@@ -605,6 +606,8 @@ function openCardMenu(c) {
   if (c.type === 'enhancer' && S.combat && S.phase === 'combat' &&
       S.combat.fighterId !== me && S.combat.helperId !== me)
     btns.push([`🔥 Подкинуть монстру (+${c.bonus})`, () => act({ t: 'playEnhancer', uid: c.uid })]);
+  if (c.type === 'monster')
+    btns.unshift(['🔍 Исходы боя', () => openCombatPreview(c.uid)]);
   if (c.type === 'monster' && S.combat && (S.phase === 'combat' || S.phase === 'run') &&
       S.combat.fighterId !== me && S.combat.helperId !== me)
     btns.push(['👹 Подкинуть в бой', () => act({ t: 'wanderMonster', uid: c.uid })]);
@@ -698,6 +701,56 @@ function renderOffers() {
     $('cfAccept').onclick = () => { closeModal(); act({ t: 'tradeAccept', offerId: r.id }); };
     $('cfDecline').onclick = () => { closeModal(); act({ t: 'tradeDecline', offerId: r.id }); };
   }
+}
+
+// превью: что будет, если выиграть / проиграть этот бой
+function openCombatPreview(uid) {
+  let card = S.combat ? S.combat.monsters.find((m) => m.uid === uid) : null;
+  if (!card) card = (you().hand || []).find((c) => c.uid === uid);
+  if (!card) return;
+  const first = S.combat ? S.combat.monsters[0] : card;
+  const totLv = S.combat ? S.combat.monsters.reduce((a, m) => a + (m.levels ?? 1), 0) : (card.levels ?? 1);
+  const totTr = S.combat ? S.combat.monsters.reduce((a, m) => a + (m.treasures ?? 1), 0) : (card.treasures ?? 1);
+  const mp = S.combat ? S.combat.monsterPower : card.level;
+  const sp = S.combat ? S.combat.sidePower : (you()?.power || 0);
+  const badText = {
+    none: 'ничего страшного',
+    loseLevel: `потеряешь ${first.bad.n ?? 1} ур.`,
+    loseSlot: `потеряешь ${SLOT_NAME[first.bad.slot] || first.bad.slot}`,
+    loseRandomSlot: 'потеряешь случайный предмет',
+    loseClass: 'потеряешь класс',
+    skipTurn: 'пропустишь ход',
+    death: 'СМЕРТЬ: уровень 1, шмот в сброс, добор 4 дверей',
+  }[first.bad.t] || '';
+  const btns = [];
+  const inCombatNow = S.combat && S.combat.monsters.some((m) => m.uid === uid);
+  if (!inCombatNow && S.combat && (S.phase === 'combat' || S.phase === 'run') &&
+      S.combat.fighterId !== me && S.combat.helperId !== me &&
+      (you().hand || []).some((c) => c.uid === uid))
+    btns.push(['👹 Подкинуть в бой', () => act({ t: 'wanderMonster', uid })]);
+  const helperNote = S.combat && S.combat.helperId
+    ? ' · <b>с помощником до 10-го не дорастёшь</b>' + (S.combat.helperFee ? ` · помощнику +${S.combat.helperFee} 💎` : '')
+    : '';
+  openModal(`
+    <h3>🔍 Что будет в бою?</h3>
+    <div class="reveal-wrap">${cardHTML(card, 'reveal')}</div>
+    <div class="pv-outcomes">
+      <div class="pv-block pv-win">
+        <b>🏆 Если победишь</b>
+        <div>+${totLv} ур. и ${totTr} сокровищ(а)${helperNote}</div>
+      </div>
+      <div class="pv-block pv-lose">
+        <b>💀 Если проиграешь и не убежишь</b>
+        <div>${esc(first.name)} — ${esc(badText)}</div>
+        ${first.text ? `<div style="color:var(--muted);font-size:11px">${esc(first.text)}</div>` : ''}
+        <div style="color:var(--muted);font-size:11px;margin-top:4px">Побег: кубик 5+ (+бонус шмота) — тогда ничего не будет</div>
+      </div>
+      ${S.combat ? `<div style="text-align:center;color:var(--muted);font-size:12px">Сейчас в бою: монстр <b>${mp}</b> против отряда <b>${sp}</b></div>` : ''}
+    </div>
+    ${btns.length ? `<div class="m-actions">${btns.map((x, i) => `<button class="btn" data-pv="${i}">${x[0]}</button>`).join('')}</div>` : ''}`);
+  $('modalBox').querySelectorAll('[data-pv]').forEach((el) => {
+    el.onclick = () => { const i = +el.dataset.pv; closeModal(); btns[i][1](); };
+  });
 }
 
 function openMonsterPicker(mine, makeAction) {

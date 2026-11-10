@@ -228,7 +228,8 @@ aside, #table {
 .discard b { color: var(--text); font-weight: 500; }
 
 /* бой */
-#combatArea { flex: 1; display: flex; flex-direction: column; gap: 10px; min-height: 0; overflow-y: auto; }
+#combatArea { display: flex; flex-direction: column; gap: 8px; flex: 0 0 auto; }
+
 .vs-wrap { display: flex; gap: 10px; align-items: stretch; flex: 0 0 auto; }
 .side {
   flex: 1; border-radius: 16px; padding: 10px; text-align: center;
@@ -266,7 +267,7 @@ aside, #table {
   50%      { text-shadow: 0 0 26px rgba(255,200,87,.85); transform: scale(1.12); }
 }
 #monsterCards, #sideCards { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
-#monsterCards .card, #sideCards .card { width: 130px; font-size: 11px; }
+
 #combatActions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
 
 #turnActions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
@@ -490,6 +491,19 @@ aside, #table {
 .pick-cards .card { width: 120px; min-height: 150px; }
 .pick-cards .card.selected { outline: 3px solid var(--gold); box-shadow: 0 0 16px rgba(255,200,87,.4); }
 
+/* превью исходов боя */
+.pv-outcomes { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.pv-block {
+  border-radius: 10px; padding: 9px 12px; font-size: 13px;
+  border: 1px solid rgba(255,255,255,.12);
+  text-align: left;
+}
+.pv-block b { display: block; margin-bottom: 3px; font-family: var(--font-head); }
+.pv-win { background: rgba(40, 90, 50, .35); border-color: rgba(125,222,139,.4); }
+.pv-win b { color: var(--green); }
+.pv-lose { background: rgba(90, 30, 40, .35); border-color: rgba(255,93,93,.4); }
+.pv-lose b { color: var(--red); }
+
 /* вытянутая карта */
 .reveal-wrap { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
 .reveal-wrap .card.reveal {
@@ -533,3 +547,8 @@ aside, #table {
   #logPanel { display: none; }
   body { overflow: auto; }
 }
+
+/* компактный бой — перекрывает базовые размеры */
+#monsterCards .card, #sideCards .card { width: 118px; font-size: 11px; }
+.side { padding: 8px; }
+.side-power { font-size: 36px; }
