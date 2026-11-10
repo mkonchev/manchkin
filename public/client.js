@@ -556,5 +556,41 @@ function pickPlayer(cb, title) {
   });
 }
 
+// ------------------------------------------------ 3D-наклон карт под курсор
+let tiltCard = null;
+function tiltReset(card) {
+  card.style.transition = 'transform .5s cubic-bezier(.2,.8,.3,1), box-shadow .5s';
+  card.style.transform = '';
+  card.style.boxShadow = '';
+  card.style.setProperty('--shine', '0');
+}
+document.addEventListener('mousemove', (e) => {
+  const card = e.target && e.target.closest ? e.target.closest('.card') : null;
+  if (tiltCard && (!card || card !== tiltCard)) {
+    tiltReset(tiltCard);
+    tiltCard = null;
+  }
+  if (!card) return;
+  const r = card.getBoundingClientRect();
+  if (e.clientX < r.left - 4 || e.clientX > r.right + 4 || e.clientY < r.top - 4 || e.clientY > r.bottom + 4) return;
+  const px = (e.clientX - r.left) / r.width - 0.5;   // -0.5 … 0.5
+  const py = (e.clientY - r.top) / r.height - 0.5;
+  card.style.transition = 'box-shadow .2s';
+  card.style.transform =
+    `perspective(750px) rotateX(${(-py * 12).toFixed(2)}deg) rotateY(${(px * 12).toFixed(2)}deg) translateY(-3px) scale(1.03)`;
+  card.style.setProperty('--gx', `${((px + 0.5) * 100).toFixed(1)}%`);
+  card.style.setProperty('--gy', `${((py + 0.5) * 100).toFixed(1)}%`);
+  card.style.setProperty('--shine', '1');
+  card.style.boxShadow = '0 14px 32px rgba(0,0,0,.5), 0 0 14px rgba(143,108,255,.18)';
+  tiltCard = card;
+});
+document.addEventListener('mouseout', (e) => {
+  const card = e.target && e.target.closest ? e.target.closest('.card') : null;
+  if (card && (!e.relatedTarget || !e.relatedTarget.closest || !e.relatedTarget.closest('.card'))) {
+    tiltReset(card);
+    if (tiltCard === card) tiltCard = null;
+  }
+});
+
 // --------------------------------------------------------------------- старт
 connect();

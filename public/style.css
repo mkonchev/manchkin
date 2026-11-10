@@ -207,11 +207,25 @@ aside, #table {
   gap: 3px;
   cursor: pointer;
   position: relative;
-  transition: 0.12s;
+  transition: border-color 0.15s;
   overflow: hidden;
   user-select: none;
+  transform-style: preserve-3d;
+  will-change: transform;
 }
-.card:hover { transform: translateY(-3px); border-color: var(--accent); }
+.card:hover { border-color: var(--accent); }
+/* блик источника света, следует за курсором */
+.card::after {
+  content: '';
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(circle at var(--gx, 50%) var(--gy, 50%),
+    rgba(255,255,255,.30) 0%, rgba(255,255,255,.14) 16%, rgba(255,255,255,.04) 30%, transparent 46%);
+  opacity: var(--shine, 0);
+  transition: opacity .25s;
+  pointer-events: none;
+  z-index: 5;
+}
 .card .c-ico { font-size: 18px; }
 .card .c-img {
   height: 52px; border-radius: 6px; overflow: hidden;
