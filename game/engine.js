@@ -380,25 +380,29 @@ class Game {
       const cap = h ? WIN_LEVEL - 1 : WIN_LEVEL;   // с помощником 10-го не достигают
       const before = f.level;
       f.level = Math.min(cap, f.level + levels);
-      this.say(`${f.name} получает ${levels} ур. (${f.level}) и ${treasures} сокровищ(а).`);
+      this.say(`${f.name} получает ${levels} ур. (${f.level}).`);
       if (h && before + levels >= WIN_LEVEL)
         this.say(`⚖ С помощником до ${WIN_LEVEL}-го уровня не дорастают!`);
+      // общая добыча делится: помощник берёт сторгованное (или 1 по классике), бойцу — остаток
+      const tr = this.draw('treasure', treasures);
       if (h) {
         const fee = this.combat.helperFee || 0;
-        const bonus = this.draw('treasure', 1 + fee);
-        h.hand.push(...bonus);
-        this.say(`${h.name} (помощник) получает ${1 + fee} сокровищ(а)${fee ? ` (по торгу +${fee})` : ''}.`);
-        if (bonus.length) this.reveal = { kind: 'helper', byId: h.id, byName: h.name,
-          secret: true, cards: bonus, ts: Date.now() };
+        const helperShare = Math.min(fee || 1, tr.length);
+        const helperCards = tr.splice(0, helperShare);
+        h.hand.push(...helperCards);
+        f.hand.push(...tr);
+        this.say(`💰 ${f.name} — ${tr.length} сокровищ(а), ${h.name} (помощник) — ${helperCards.length}${fee ? ` (по торгу ${fee})` : ''}.`);
+        if (helperCards.length) this.reveal = { kind: 'helper', byId: h.id, byName: h.name,
+          secret: true, cards: helperCards, ts: Date.now() };
         if (this.hasRace(h, 'elf') && h.level < WIN_LEVEL - 1) {
           h.level += 1;
           this.say(`🧝 ${h.name} (${h.race.name}) получает +1 уровень за помощь.`);
         }
+      } else {
+        f.hand.push(...tr);
+        if (tr.length) this.reveal = { kind: 'treasure', byId: f.id, byName: f.name,
+          secret: true, cards: tr, ts: Date.now() };
       }
-      const tr = this.draw('treasure', treasures);
-      f.hand.push(...tr);
-      if (tr.length) this.reveal = { kind: 'treasure', byId: f.id, byName: f.name,
-        secret: true, cards: tr, ts: Date.now() };
       this.combat = null;
       this.phase = 'charity';
       if (f.level >= WIN_LEVEL) return this.winGame(f);
@@ -923,7 +927,7 @@ class Game {
       runBonus: c.runBonus, price: c.price, arg: c.arg,
       levels: c.levels, treasures: c.treasures, hands: c.hands,
       power: c.power, classMod: c.classMod || null, img: c.img || null,
-      synergy: c.synergy || null,
+      synergy: c.synergy || null, bad: c.bad || null, tag: c.tag || null,
     };
   }
   cardPubEff(p, c) {

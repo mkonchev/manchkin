@@ -31,7 +31,10 @@ const server = http.createServer((req, res) => {
   if (!file.startsWith(PUBLIC_DIR)) { res.writeHead(403); res.end(); return; }
   fs.readFile(file, (err, data) => {
     if (err) { res.writeHead(404); res.end('Не найдено'); return; }
-    res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream' });
+    res.writeHead(200, {
+      'Content-Type': MIME[path.extname(file)] || 'application/octet-stream',
+      'Cache-Control': 'no-store',
+    });
     res.end(data);
   });
 });
@@ -94,11 +97,15 @@ wss.on('connection', (ws) => {
         const room = getRoom(msg.code);
         if (!room) return send(ws, { t: 'error', error: 'Комната не найдена' });
         const name = String(msg.name || '').trim().slice(0, 20) || 'Игрок';
-        // реконнект под своим именем
+        // реконнект под своим именем: если старый сокет мёртв — забираем место
         const existing = room.game.players.find(
-          (p) => p.name.toLowerCase() === name.toLowerCase() && !p.connected);
+          (p) => p.name.toLowerCase() === name.toLowerCase());
         let pid;
         if (existing) {
+          const oldSock = room.sockets.get(existing.id);
+          const alive = oldSock && oldSock.readyState === 1 && oldSock !== ws;
+          if (alive) return send(ws, { t: 'error', error: 'Имя уже занято, выбери другое' });
+          if (oldSock) room.sockets.delete(existing.id);
           pid = existing.id; existing.connected = true;
           room.game.say(`${name} снова с нами!`);
         } else {

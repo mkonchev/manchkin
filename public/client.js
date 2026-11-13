@@ -24,6 +24,11 @@ function connect() {
   ws.onopen = () => {
     if (joining) {
       send({ t: 'join', code: joining.code, name: myName });
+    } else {
+      // автопереподключение после перезагрузки страницы
+      const code = sessionStorage.getItem('mk_code');
+      const nm = sessionStorage.getItem('mk_name');
+      if (code && nm) send({ t: 'join', code, name: nm });
     }
   };
   ws.onmessage = (e) => {
@@ -31,6 +36,8 @@ function connect() {
     if (msg.t === 'state') { S = msg.state; render(); }
     else if (msg.t === 'joined') {
       me = msg.playerId; joining = { code: msg.code };
+      sessionStorage.setItem('mk_code', msg.code);
+      sessionStorage.setItem('mk_name', myName);
       history.replaceState(null, '', `/?room=${msg.code}`);
       $('lobby').classList.add('hidden');
       $('game').classList.remove('hidden');
@@ -42,6 +49,7 @@ function connect() {
     }
     else if (msg.t === 'left') {
       me = null; joining = null; S = null;
+      sessionStorage.removeItem('mk_code');
       $('game').classList.add('hidden');
       $('lobby').classList.remove('hidden');
     }
@@ -250,9 +258,7 @@ function renderCombat() {
   $('monsterCards').innerHTML = c.monsters.map((m) => cardHTML(m)).join('') +
     (c.monsterBonus ? `<div class="side-label">усиления: ${c.monsterBonus > 0 ? '+' : ''}${c.monsterBonus}</div>` : '') +
     (c.classModNote ? `<div class="side-label" style="color:${c.classModNote.active ? 'var(--red)' : 'var(--muted)'}">против класса: ${c.classModNote.bonus > 0 ? '+' : ''}${c.classModNote.bonus}${c.classModNote.active ? ' — АКТИВЕН!' : ''}</div>` : '');
-  $('monsterCards').querySelectorAll('.card').forEach((el) => {
-    el.onclick = () => openCombatPreview(el.dataset.uid);
-  });
+
   $('sideCards').innerHTML =
     `<div class="side-label">${esc(fighter?.name || '?')}${helper ? ` + ${esc(helper.name)}${c.helperFee ? ` 💰за ${c.helperFee} 💎` : ''}` : ''}</div>` +
     (c.sideBonus ? `<div class="side-label">разовые карты: +${c.sideBonus}</div>` : '');
@@ -348,6 +354,14 @@ function renderTurnActions() {
       wb.onclick = () => openMonsterPicker(mine);
       box.appendChild(wb);
     }
+  }
+  if (S.combat && (S.phase === 'combat' || S.phase === 'run')) {
+    const pb = document.createElement('button');
+    pb.className = 'btn big';
+    pb.textContent = '🔍 Что будет?';
+    pb.title = 'Исходы боя: победа, поражение, побег';
+    pb.onclick = () => openCombatPreview();
+    box.appendChild(pb);
   }
   if (S.phase === 'combat' && iAmFighter) {
     const b = document.createElement('button');
@@ -607,7 +621,7 @@ function openCardMenu(c) {
       S.combat.fighterId !== me && S.combat.helperId !== me)
     btns.push([`🔥 Подкинуть монстру (+${c.bonus})`, () => act({ t: 'playEnhancer', uid: c.uid })]);
   if (c.type === 'monster')
-    btns.unshift(['🔍 Исходы боя', () => openCombatPreview(c.uid)]);
+    btns.unshift(['🔍 Исходы боя', () => openCombatPreview(S.combat ? null : c.uid)]);
   if (c.type === 'monster' && S.combat && (S.phase === 'combat' || S.phase === 'run') &&
       S.combat.fighterId !== me && S.combat.helperId !== me)
     btns.push(['👹 Подкинуть в бой', () => act({ t: 'wanderMonster', uid: c.uid })]);
@@ -705,47 +719,52 @@ function renderOffers() {
 
 // превью: что будет, если выиграть / проиграть этот бой
 function openCombatPreview(uid) {
-  let card = S.combat ? S.combat.monsters.find((m) => m.uid === uid) : null;
-  if (!card) card = (you().hand || []).find((c) => c.uid === uid);
-  if (!card) return;
-  const first = S.combat ? S.combat.monsters[0] : card;
-  const totLv = S.combat ? S.combat.monsters.reduce((a, m) => a + (m.levels ?? 1), 0) : (card.levels ?? 1);
-  const totTr = S.combat ? S.combat.monsters.reduce((a, m) => a + (m.treasures ?? 1), 0) : (card.treasures ?? 1);
-  const mp = S.combat ? S.combat.monsterPower : card.level;
-  const sp = S.combat ? S.combat.sidePower : (you()?.power || 0);
-  const badText = {
+  let monsters, mp, sp;
+  if (S.combat) {
+    monsters = S.combat.monsters;
+    if (!monsters.length) return;
+    mp = S.combat.monsterPower; sp = S.combat.sidePower;
+  } else {
+    const card = (you().hand || []).find((c) => c.uid === uid);
+    if (!card) return;
+    monsters = [card]; mp = card.level; sp = you().power;
+  }
+  const totLv = monsters.reduce((a, m) => a + (m.levels ?? 1), 0);
+  const totTr = monsters.reduce((a, m) => a + (m.treasures ?? 1), 0);
+  const badText = (m) => ({
     none: 'ничего страшного',
-    loseLevel: `потеряешь ${first.bad.n ?? 1} ур.`,
-    loseSlot: `потеряешь ${SLOT_NAME[first.bad.slot] || first.bad.slot}`,
+    loseLevel: `потеряешь ${(m.bad && m.bad.n) ?? 1} ур.`,
+    loseSlot: `потеряешь ${SLOT_NAME[m.bad && m.bad.slot] || (m.bad && m.bad.slot)}`,
     loseRandomSlot: 'потеряешь случайный предмет',
     loseClass: 'потеряешь класс',
     skipTurn: 'пропустишь ход',
     death: 'СМЕРТЬ: уровень 1, шмот в сброс, добор 4 дверей',
-  }[first.bad.t] || '';
-  const btns = [];
-  const inCombatNow = S.combat && S.combat.monsters.some((m) => m.uid === uid);
-  if (!inCombatNow && S.combat && (S.phase === 'combat' || S.phase === 'run') &&
-      S.combat.fighterId !== me && S.combat.helperId !== me &&
-      (you().hand || []).some((c) => c.uid === uid))
-    btns.push(['👹 Подкинуть в бой', () => act({ t: 'wanderMonster', uid })]);
-  const helperNote = S.combat && S.combat.helperId
+  }[(m.bad && m.bad.t)] || 'ничего страшного');
+  const helperNote = S.combat.helperId
     ? ' · <b>с помощником до 10-го не дорастёшь</b>' + (S.combat.helperFee ? ` · помощнику +${S.combat.helperFee} 💎` : '')
     : '';
+  const cardsHTML = monsters.map((m) => cardHTML(m, 'reveal')).join('');
+  const loseList = monsters.map((m) =>
+    `<div>«${esc(m.name)}» — ${esc(badText(m))}</div>`).join('');
+  const btns = [];
+  if ((S.phase === 'combat' || S.phase === 'run') && S.combat.fighterId !== me &&
+      S.combat.helperId !== me && (you().hand || []).some((c) => c.type === 'monster'))
+    btns.push(['👹 Подкинуть монстра из руки', () => openMonsterPicker(
+      you().hand.filter((c) => c.type === 'monster'))]);
   openModal(`
-    <h3>🔍 Что будет в бою?</h3>
-    <div class="reveal-wrap">${cardHTML(card, 'reveal')}</div>
+    <h3>🔍 Что будет в этом бою?</h3>
+    <div class="reveal-wrap">${cardsHTML}</div>
     <div class="pv-outcomes">
       <div class="pv-block pv-win">
         <b>🏆 Если победишь</b>
         <div>+${totLv} ур. и ${totTr} сокровищ(а)${helperNote}</div>
       </div>
       <div class="pv-block pv-lose">
-        <b>💀 Если проиграешь и не убежишь</b>
-        <div>${esc(first.name)} — ${esc(badText)}</div>
-        ${first.text ? `<div style="color:var(--muted);font-size:11px">${esc(first.text)}</div>` : ''}
-        <div style="color:var(--muted);font-size:11px;margin-top:4px">Побег: кубик 5+ (+бонус шмота) — тогда ничего не будет</div>
+        <b>💀 Если проиграешь и не убежишь (кубик меньше 5)</b>
+        ${loseList}
+        <div style="color:var(--muted);font-size:11px;margin-top:4px">Успешный побег: кубик 5+ (+бонус шмота) — тогда ничего не будет</div>
       </div>
-      ${S.combat ? `<div style="text-align:center;color:var(--muted);font-size:12px">Сейчас в бою: монстр <b>${mp}</b> против отряда <b>${sp}</b></div>` : ''}
+      <div style="text-align:center;color:var(--muted);font-size:12px">Сейчас в бою: монстр <b>${mp}</b> против отряда <b>${sp}</b></div>
     </div>
     ${btns.length ? `<div class="m-actions">${btns.map((x, i) => `<button class="btn" data-pv="${i}">${x[0]}</button>`).join('')}</div>` : ''}`);
   $('modalBox').querySelectorAll('[data-pv]').forEach((el) => {
@@ -800,6 +819,12 @@ function pickPlayer(cb, title) {
     el.onclick = () => { closeModal(); cb(others[+el.dataset.i]); };
   });
 }
+
+// клик по карте монстра на столе боя -> превью (делегирование)
+document.addEventListener('click', (e) => {
+  const el = e.target && e.target.closest ? e.target.closest('#monsterCards .card') : null;
+  if (el && S && S.combat) openCombatPreview(el.dataset.uid);
+});
 
 // ------------------------------------------------ 3D-наклон карт под курсор
 let tiltCard = null;

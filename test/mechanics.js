@@ -522,10 +522,12 @@ console.log('=== 11. Торг за помощь и кап 9-го с помощн
 
   // Боря на 9-м уровне — с помощником он не должен достичь 10-го
   a.level = 9;
+  const aH0 = a.hand.length, bH0 = b.hand.length;
   g.action('p1', { t: 'resolve' }); // победа (2 против 1), награда 1 ур
   ok(a.level === 9, 'с помощником уровень капится на 9 (было 9, осталось 9)');
   ok(g.phase !== 'over', 'игра не окончена (кап сработал)');
-  ok(b.hand.length >= 3, 'помощник получил 1 + 2 сокровища по торгу');
+  ok(b.hand.length === bH0 + 2, 'помощник забрал сторгованные 2 сокровища');
+  ok(a.hand.length === aH0, 'бойцу остаётся общая добыча минус сторгованное (0)');
 
   // отказ от торга -> обычная помощь
   g.turnIdx = 1; g.phase = 'kick';
@@ -535,11 +537,12 @@ console.log('=== 11. Торг за помощь и кап 9-го с помощн
   g.action('p1', { t: 'proposeHelpFee', amount: 5 });
   g.action('p2', { t: 'respondFee', accept: false });
   ok(g.combat.askId === 'p1' && g.combat.feeProposal === null, 'отказ от торга возвращает решение Ане');
-  const aHand0 = a.hand.length;
+  const aHand0 = a.hand.length, bH0b = b.hand.length;
   g.action('p1', { t: 'respondHelp', accept: true });
   ok(g.combat.helperId === 'p1' && g.combat.helperFee === 0, 'обычная помощь без торга');
   g.action('p2', { t: 'resolve' });
   ok(a.hand.length === aHand0 + 1, 'без торга помощник получает 1 сокровище');
+  ok(b.hand.length === bH0b + 4, 'бойцу — остаток добычи (4)');
   g.phase = 'charity';
 }
 
